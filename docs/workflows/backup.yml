@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 30
     services:
       restore:
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: restore
@@ -43,14 +43,14 @@ jobs:
         env:
           PGURL: ${{ secrets.DATABASE_URL }}
         run: |
-          docker run --rm --network host -e PGURL postgres:17 \
+          docker run --rm --network host -e PGURL postgres:18 \
             sh -c 'pg_dump --format=custom --no-owner --no-acl "$PGURL"' > vlab.dump
           test -s vlab.dump
       - name: "Thử khôi phục và đối chiếu"
         id: restore
         continue-on-error: true
         run: |
-          docker run --rm --network host -v "$PWD:/w" postgres:17 \
+          docker run --rm --network host -v "$PWD:/w" postgres:18 \
             pg_restore --no-owner --no-acl --exit-on-error -d "$RESTORE_URL" /w/vlab.dump
           DATABASE_URL="$RESTORE_URL" python -m vlab verify --checkpoint checkpoint.json
       - name: "Đẩy lên kho sao lưu riêng"
