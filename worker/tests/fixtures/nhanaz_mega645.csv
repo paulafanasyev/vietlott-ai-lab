@@ -1,0 +1,4 @@
+product,draw_id,draw_date,draw_status,result_json,attributes_json,official_pdf_urls_json,source_url,prize_status,validation_status,validation_warnings_json,fetched_at
+mega645,00001,2016-07-20,confirmed,"{""numbers"":[2,17,33,37,38,45],""special_numbers"":[]}","{""data_source"":""official_vietlott""}","[]",https://vietlott.vn/vi/trung-thuong/ket-qua-trung-thuong/645?id=00001&nocatche=1,complete,valid,[],2026-06-13T19:17:18+00:00
+mega645,00002,2016-07-22,confirmed,"{""numbers"":[3,4,14,20,25,35],""special_numbers"":[]}","{}","[]",https://vietlott.vn/vi/trung-thuong/ket-qua-trung-thuong/645?id=00002&nocatche=1,complete,invalid,[],2026-06-13T19:17:18+00:00
+mega645,00003,2016-07-24,confirmed,"{""numbers"":[1,10,16,18,23,38],""special_numbers"":[5]}","{}","[]",https://vietlott.vn/x,complete,valid,[],2026-06-13T19:17:17+00:00
