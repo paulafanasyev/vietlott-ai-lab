@@ -1,0 +1,93 @@
+# Скопировать в .github/workflows/backup.yml.
+# Секреты: DATABASE_URL (владелец — для pg_dump), DATABASE_URL_WORKER (vlab_worker),
+# BACKUP_REPO (например paulafanasyev/vietlott-ai-lab-backups — ПРИВАТНЫЙ репозиторий),
+# BACKUP_REPO_TOKEN (fine-grained token: Contents read/write только на BACKUP_REPO).
+# Каждую ночь: контрольная точка → дамп → восстановление в чистый PostgreSQL → сверка с контрольной точкой →
+# дамп и контрольная точка уходят в приватный репозиторий → результат пишется в backups/backup_restore_tests.
+name: "Sao lưu và thử khôi phục"
+on:
+  schedule:
+    - cron: "30 17 * * *"   # 00:30 по Вьетнаму
+  workflow_dispatch: {}
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: "Sao lưu, thử khôi phục, lưu vào kho riêng"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      restore:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: restore
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      RESTORE_URL: postgresql://postgres:postgres@localhost:5433/restore
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e worker
+      - name: "Tạo điểm kiểm tra"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_WORKER }}
+        run: python -m vlab checkpoint --out checkpoint.json > /dev/null
+      - name: "Sao lưu (pg_dump)"
+        env:
+          PGURL: ${{ secrets.DATABASE_URL }}
+        run: |
+          docker run --rm --network host -e PGURL postgres:17 \
+            sh -c 'pg_dump --format=custom --no-owner --no-acl "$PGURL"' > vlab.dump
+          test -s vlab.dump
+      - name: "Thử khôi phục và đối chiếu"
+        id: restore
+        continue-on-error: true
+        run: |
+          docker run --rm --network host -v "$PWD:/w" postgres:17 \
+            pg_restore --no-owner --no-acl --exit-on-error -d "$RESTORE_URL" /w/vlab.dump
+          DATABASE_URL="$RESTORE_URL" python -m vlab verify --checkpoint checkpoint.json
+      - name: "Đẩy lên kho sao lưu riêng"
+        env:
+          TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          REPO: ${{ secrets.BACKUP_REPO }}
+          RESTORE: ${{ steps.restore.outcome }}
+        run: |
+          set -euo pipefail
+          stamp=$(date -u +%Y-%m-%dT%H%MZ)
+          git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/${REPO}.git" b
+          # Bản không khôi phục được không được coi là bản sao lưu tốt: thư mục failed/ để điều tra.
+          dir=daily; [ "$RESTORE" = "success" ] || dir=failed
+          mkdir -p "b/${dir}"
+          cp vlab.dump "b/${dir}/vlab-${stamp}.dump"
+          cp checkpoint.json "b/${dir}/checkpoint-${stamp}.json"
+          # Danh sách băm dùng ĐÚNG tên tệp trong kho: `cd <thư mục> && sha256sum -c SHA256SUMS-<mốc>` kiểm tra được.
+          ( cd "b/${dir}" && sha256sum "vlab-${stamp}.dump" "checkpoint-${stamp}.json" > "SHA256SUMS-${stamp}" \
+            && sha256sum -c "SHA256SUMS-${stamp}" )
+          cd b
+          # Giữ tổng cộng 60 tệp dump mới nhất (daily + failed); điểm kiểm tra JSON giữ vĩnh viễn (rất nhỏ).
+          { find daily failed -name 'vlab-*.dump' 2>/dev/null || true; } \
+            | awk -F/ '{print $NF" "$0}' | sort | awk '{print $2}' | head -n -60 \
+            | while read -r f; do git rm -q "$f"; done
+          git config user.name "vlab-backup"
+          git config user.email "vlab-backup@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Không có thay đổi để đẩy"
+          else
+            git commit -qm "backup ${stamp} (restore: ${RESTORE})"
+            git push -q origin HEAD
+          fi
+          echo "LOCATION=github:${REPO}/${dir}/vlab-${stamp}.dump" >> "$GITHUB_ENV"
+      - name: "Ghi nhận kết quả"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_WORKER }}
+        run: >-
+          python -m vlab record-backup --location "$LOCATION" --file vlab.dump
+          --restore-ok ${{ steps.restore.outcome == 'success' && 'true' || 'false' }}

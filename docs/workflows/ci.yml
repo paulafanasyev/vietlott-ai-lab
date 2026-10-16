@@ -1,0 +1,79 @@
+# Скопировать в .github/workflows/ci.yml (агент не может сам создавать файлы в .github/workflows).
+name: "Kiểm thử"
+on:
+  push:
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  worker-tests:
+    name: "Kiểm thử worker trên PostgreSQL"
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vlab_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: worker
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vlab_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: pytest -v
+
+  # Проверка, что дамп восстанавливается и проходит сверку с контрольной точкой (та же процедура, что в backup.yml).
+  backup-restore-smoke:
+    name: "Thử sao lưu → khôi phục → đối chiếu"
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: src
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      SRC: postgresql://postgres:postgres@localhost:5432/src
+      DST: postgresql://postgres:postgres@localhost:5432/dst
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e worker
+      - run: DATABASE_URL="$SRC" python -m vlab migrate
+      - run: DATABASE_URL="$SRC" python -m vlab ingest --trigger ci || true   # реальная загрузка из интернета
+      - run: DATABASE_URL="$SRC" python -m vlab checkpoint --out cp.json > /dev/null
+      - run: |
+          docker run --rm --network host -e PGPASSWORD postgres:17 sh -c \
+            "pg_dump --format=custom --no-owner --no-acl '$SRC' > /tmp/d && createdb -h localhost -U postgres dst \
+             && pg_restore --no-owner --no-acl --exit-on-error -d '$DST' /tmp/d"
+        env:
+          PGPASSWORD: postgres
+      - run: DATABASE_URL="$DST" python -m vlab verify --checkpoint cp.json
+      - name: "Xuất dữ liệu làm bằng chứng"
+        run: |
+          for k in draws history observations conflicts; do
+            DATABASE_URL="$SRC" python -m vlab export --kind $k --format csv --out $k.csv
+            DATABASE_URL="$SRC" python -m vlab export --kind $k --format json --out $k.json
+          done
+          head -5 draws.csv
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-evidence
+          path: |
+            cp.json
+            *.csv
+            *.json
