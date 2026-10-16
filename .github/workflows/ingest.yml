@@ -1,0 +1,51 @@
+# Скопировать в .github/workflows/ingest.yml. Секреты репозитория: DATABASE_URL (роль-владелец, только
+# для migrate) и DATABASE_URL_WORKER (роль с правами vlab_app: только SELECT/INSERT).
+name: "Thu thập kết quả"
+on:
+  schedule:
+    # Время UTC. Тиражи в 18:00 по Вьетнаму = 11:00 UTC; результаты обычно к 18:30.
+    # Запуск ЕЖЕДНЕВНЫЙ намеренно: 6 игровых дней из 7 есть тираж (Mega Ср/Пт/Вс, Power Вт/Чт/Сб), а в
+    # остальные запуски ловятся поздние публикации, исправления в архивах и повторные попытки после ошибок.
+    - cron: "30 12 * * *"   # 19:30 ICT
+    - cron: "0 14 * * *"    # 21:00 ICT
+    - cron: "0 16 * * *"    # 23:00 ICT
+    - cron: "0 1 * * *"     # 08:00 ICT — повтор на следующее утро
+  workflow_dispatch:
+    inputs:
+      official_pages:
+        description: "Số trang danh sách chính thức cần đọc (1..20)"
+        default: "1"
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    name: "Thu thập, đối chiếu, kiểm tra toàn vẹn"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: "Cài đặt"
+        run: pip install -e .
+      - name: "Cập nhật CSDL (migrate)"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m vlab migrate
+      - name: "Thu thập và đối chiếu"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_WORKER }}
+        run: >-
+          python -m vlab ingest
+          --trigger ${{ github.event_name == 'schedule' && 'schedule' || 'manual' }}
+          --official-pages ${{ inputs.official_pages || '1' }}
+      - name: "Kiểm tra toàn vẹn"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_WORKER }}
+        run: python -m vlab verify
