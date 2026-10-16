@@ -1,0 +1,17 @@
+[project]
+name = "vlab"
+version = "0.1.0"
+description = "Vietlott AI Lab — worker thu thập, kiểm chứng và phân tích"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    "psycopg[binary]>=3.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
