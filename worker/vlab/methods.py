@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import Callable, Sequence
+from typing import Sequence
 
 Draw = tuple[int, ...]  # 6 số chính của một kỳ
 
@@ -30,15 +30,26 @@ METHODS: tuple[Method, ...] = (
     Method("M5", "Tần suất có trọng số thời gian", "Tần suất giảm dần theo thời gian (chu kỳ bán rã 30 kỳ)."),
     Method("M6", "Cặp số đi cùng kỳ trước", "Các số hay xuất hiện cùng với các số của kỳ vừa quay."),
     Method("M7", "Tổng hợp M1–M6", "Trung bình thứ hạng của M1–M6."),
+    Method("M8", "Tự học (trọng số thích nghi)",
+           "Kết hợp M1–M6 với trọng số tự cập nhật sau mỗi kỳ theo thành tích gần đây (thuật toán Hedge)."),
 )
+BASE = ("M1", "M2", "M3", "M4", "M5", "M6")
+FAMILY = {"M0": "random", "M1": "statistics", "M2": "statistics", "M3": "statistics", "M4": "statistics",
+          "M5": "timeseries", "M6": "statistics", "M7": "ensemble", "M8": "ensemble"}
 CODES = tuple(m.code for m in METHODS)
 
 
 class State:
     """Trạng thái tăng dần: cập nhật sau mỗi kỳ, để walk-forward chạy O(kỳ × N)."""
 
-    def __init__(self, max_number: int, window: int = 50, half_life: float = 30.0):
+    def __init__(self, max_number: int, window: int = 50, half_life: float = 30.0,
+                 learn_half_life: float = 50.0, learn_rate: float = 0.5):
         self.n = max_number
+        # Tự học: điểm của mỗi phương pháp cơ sở = tổng (số trúng − kỳ vọng ngẫu nhiên), giảm dần theo thời gian.
+        self.learn_decay = 0.5 ** (1.0 / learn_half_life)
+        self.learn_rate = learn_rate
+        self.learn_score = {c: 0.0 for c in BASE}
+        self.learn_hits = {c: 0 for c in BASE}
         self.window = window
         self.decay = 0.5 ** (1.0 / half_life)
         self.history: list[Draw] = []
@@ -50,6 +61,14 @@ class State:
 
     def add(self, draw: Draw) -> None:
         t = len(self.history)
+        # Trước khi ghi nhận kỳ mới: chấm vé mà từng phương pháp cơ sở ĐÃ chọn cho kỳ này (chỉ dựa trên quá khứ).
+        if self.history:
+            mu = 36 / self.n
+            actual = set(draw)
+            for c in BASE:
+                hits = len(actual.intersection(ticket(self, c, f"learn|{t}")))
+                self.learn_hits[c] += hits
+                self.learn_score[c] = self.learn_score[c] * self.learn_decay + (hits - mu)
         self.history.append(draw)
         for x in range(1, self.n + 1):
             self.weighted[x] *= self.decay
@@ -86,6 +105,14 @@ class State:
         raise KeyError(code)
 
 
+def learn_weights(state: State) -> dict[str, float]:
+    import math
+    m = max(state.learn_score.values())
+    raw = {c: math.exp(state.learn_rate * (v - m)) for c, v in state.learn_score.items()}
+    total = sum(raw.values())
+    return {c: raw[c] / total for c in BASE}
+
+
 def _rng(seed_key: str) -> random.Random:
     return random.Random(seed_key)
 
@@ -102,15 +129,16 @@ def ticket(state: State, code: str, seed_key: str) -> tuple[int, ...]:
     rng = _rng(f"{seed_key}|{code}")
     if code == "M0":
         return tuple(sorted(rng.sample(range(1, n + 1), 6)))
-    if code == "M7":
+    if code in ("M7", "M8"):
+        weights = learn_weights(state) if code == "M8" else {c: 1.0 for c in BASE}
         ranks = [0.0] * (n + 1)
-        for c in ("M1", "M2", "M3", "M4", "M5", "M6"):
+        for c in BASE:
             s = state.scores(c)
             j = _rng(f"{seed_key}|{c}|rank")
             jit = [j.random() for _ in range(n + 1)]
             order = sorted(range(1, n + 1), key=lambda x: (-s[x], jit[x]))
             for r, x in enumerate(order):
-                ranks[x] += r
+                ranks[x] += weights[c] * r
         return _top6([-r for r in ranks], n, rng)
     return _top6(state.scores(code), n, rng)
 
@@ -119,4 +147,4 @@ def all_tickets(state: State, seed_key: str) -> dict[str, tuple[int, ...]]:
     return {code: ticket(state, code, seed_key) for code in CODES}
 
 
-Builder = Callable[[State, str], dict[str, tuple[int, ...]]]
+PARAMS = {"window": 50, "half_life": 30.0, "learn_half_life": 50.0, "learn_rate": 0.5, "algo": 1}
