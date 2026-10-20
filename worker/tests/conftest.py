@@ -1,4 +1,4 @@
-KEEP = {"test_ingest_end_to_end_with_fixtures", "test_observation_must_match_fetch_game", "test_conflict_rows_need_real_evidence"}
+KEEP = {"test_checkpoint_detects_tail_delete_and_edit"}
 
 
 def pytest_collection_modifyitems(config, items):
