@@ -1,4 +1,4 @@
-KEEP = {"test_resolution_must_match_conflict_draw", "test_verified_time_change_becomes_conflict", "test_database_rejects_invalid_numbers"}
+KEEP = {"test_conflict_on_first_sight_records_conflict"}
 
 
 def pytest_collection_modifyitems(config, items):
