@@ -1,4 +1,4 @@
-KEEP = {"test_pending_only_next_draw", "test_app_role_can_run_whole_stage1_flow", "test_checkpoint_detects_tail_delete_and_edit"}
+KEEP = {"test_pending_only_next_draw"}
 
 
 def pytest_collection_modifyitems(config, items):
