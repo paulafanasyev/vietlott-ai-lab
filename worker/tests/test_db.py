@@ -118,6 +118,9 @@ class DatabaseTest(unittest.TestCase):
             self.put(store, job, src)
         self.assertEqual(store.reconcile_game("mega645")[0].new_status, "VERIFIED")
 
+        # Bảng job_runs phải có dòng: trigger theo dòng không chạy khi DELETE không chạm dòng nào.
+        store.finish_job(job, "ingest", "ci", datetime.now(timezone.utc), datetime.now(timezone.utc),
+                         "success", "ok", {}, "test")
         for sql in ("UPDATE draw_versions SET status='VERIFIED'", "DELETE FROM draw_observations",
                     "TRUNCATE draw_versions CASCADE", "UPDATE fetch_attempts SET ok = false",
                     "DELETE FROM job_runs"):
@@ -240,7 +243,8 @@ class DatabaseTest(unittest.TestCase):
             self.assertIn("draw_versions", [t for t, _ in store.verify_checkpoint(cp)])
             cur.execute("ROLLBACK TO SAVEPOINT s")
             cur.execute("ALTER TABLE fetch_attempts DISABLE TRIGGER append_only_row")
-            cur.execute("UPDATE fetch_attempts SET http_status = 999 WHERE id = (SELECT min(id) FROM fetch_attempts)")
+            # 201 vẫn hợp lệ với ràng buộc ok → 2xx; chỉ nội dung dòng thay đổi.
+            cur.execute("UPDATE fetch_attempts SET http_status = 201 WHERE id = (SELECT min(id) FROM fetch_attempts)")
             self.assertIn("fetch_attempts", [t for t, _ in store.verify_checkpoint(cp)])
             cur.execute("ROLLBACK TO SAVEPOINT s")
         self.assertEqual(store.verify_checkpoint(cp), [])
