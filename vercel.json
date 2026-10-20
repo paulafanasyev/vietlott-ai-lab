@@ -4,7 +4,7 @@
     "api/index.py": { "maxDuration": 300 }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" }
+    { "source": "/api/:route", "destination": "/api/index?route=:route" }
   ],
   "crons": [
     { "path": "/api/cron", "schedule": "45 12 * * *" }

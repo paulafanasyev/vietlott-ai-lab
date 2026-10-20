@@ -203,7 +203,8 @@ def health() -> dict:
 
 
 def route(path: str, q: dict, environ) -> tuple[str, list, bytes]:
-    name = path.rstrip("/").rsplit("/", 1)[-1]
+    # vercel.json chuyển /api/<tên> → /api/index?route=<tên>; hàm có thể chỉ thấy đường dẫn đích /api/index.
+    name = (q.get("route") or path).strip("/").rsplit("/", 1)[-1]
     if name == "health":
         return "200 OK", JSON_HDR, _j(health())
     if name == "cron":
