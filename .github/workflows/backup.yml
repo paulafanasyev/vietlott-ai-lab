@@ -35,6 +35,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e worker
+      - name: "Kiểm tra quyền kết nối worker (không hiển thị bí mật)"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_WORKER }}
+        run: python -m vlab.preflight
       - name: "Tạo điểm kiểm tra"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_WORKER }}
