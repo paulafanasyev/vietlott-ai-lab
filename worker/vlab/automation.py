@@ -178,7 +178,7 @@ def weekly_report(cur, force: bool = False) -> str | None:
     lines = [f"# Báo cáo tuần ({since:%d/%m} – {now:%d/%m/%Y})", ""]
     for game, g in GAMES.items():
         cur.execute("""SELECT count(*), max(draw_no) FROM draw_current WHERE game = %s AND main_numbers IS NOT NULL
-                       AND version_created_at >= %s""", (game, since))
+                       AND draw_date >= %s""", (game, since.date()))
         n_new, last_no = cur.fetchone()
         cur.execute("""SELECT count(*), avg(x.main_hits), count(*) FILTER (WHERE x.main_hits >= 3)
                        FROM ticket_results x JOIN tickets t ON t.id = x.ticket_id JOIN prediction_runs r ON r.id = t.run_id
@@ -194,11 +194,12 @@ def weekly_report(cur, force: bool = False) -> str | None:
                   f"từ 3 số: {g3}",
                   f"- Giả thuyết đã kiểm (tích lũy): {n_e}; xác nhận: {n_ok}", ""]
     cur.execute("""SELECT job_name, count(*), count(*) FILTER (WHERE status = 'success'),
+                          count(*) FILTER (WHERE status = 'partial'),
                           count(*) FILTER (WHERE status = 'failed') FROM job_runs WHERE started_at >= %s
                    GROUP BY 1 ORDER BY 1""", (since,))
     lines.append("## Tác vụ tự động (7 ngày)")
-    for name, n, ok, bad in cur.fetchall():
-        lines.append(f"- {name}: {n} lần, thành công {ok}, lỗi {bad}")
+    for name, n, ok, part, bad in cur.fetchall():
+        lines.append(f"- {name}: {n} lần, thành công {ok}, một phần {part}, lỗi {bad}")
     cur.execute("""SELECT b.created_at, t.ok FROM backups b JOIN backup_restore_tests t ON t.backup_id = b.id
                    WHERE b.created_at >= %s ORDER BY b.id""", (since,))
     bk = cur.fetchall()
