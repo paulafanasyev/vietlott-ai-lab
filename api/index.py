@@ -169,8 +169,43 @@ def export(kind: str, fmt: str, game: str | None) -> tuple[bytes, str, str]:
 
 
 # ---------------------------------------------------------------- định tuyến
+def health() -> dict:
+    """Luôn trả 200: chẩn đoán từng bước (biến môi trường, thư viện, kết nối, lược đồ) mà không lộ bí mật."""
+    out: dict = {"python": sys.version.split()[0],
+                 "db_env": [k for k in ("DATABASE_URL_UNPOOLED", "POSTGRES_URL_NON_POOLING", "DATABASE_URL",
+                                         "POSTGRES_URL") if os.environ.get(k)],
+                 "migrations_dir": (ROOT / "db" / "migrations").is_dir(),
+                 "worker_dir": (ROOT / "worker" / "vlab").is_dir()}
+    for mod in ("psycopg", "requests", "bs4", "lxml", "vlab.store", "vlab.ingest"):
+        try:
+            __import__(mod)
+            out[mod] = "ok"
+        except Exception as exc:
+            out[mod] = f"{type(exc).__name__}: {str(exc)[:200]}"
+    try:
+        conn = connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT version()")
+                out["db"] = cur.fetchone()[0].split(" on ")[0]
+                out["schema_ready"] = _ready(cur)
+                if out["schema_ready"]:
+                    cur.execute("SELECT count(*) FROM draw_current")
+                    out["draws"] = cur.fetchone()[0]
+                    cur.execute("""SELECT status, started_at, left(summary_vi, 1500) FROM job_runs
+                                   WHERE job_name = 'ingest' ORDER BY id DESC LIMIT 1""")
+                    out["last_run"] = cur.fetchone()
+        finally:
+            conn.close()
+    except Exception as exc:
+        out["db"] = f"{type(exc).__name__}: {str(exc)[:300]}"
+    return out
+
+
 def route(path: str, q: dict, environ) -> tuple[str, list, bytes]:
     name = path.rstrip("/").rsplit("/", 1)[-1]
+    if name == "health":
+        return "200 OK", JSON_HDR, _j(health())
     if name == "cron":
         ok, trigger, why = _cron_allowed(environ, q)
         if not ok:
