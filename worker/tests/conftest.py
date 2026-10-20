@@ -1,4 +1,4 @@
-KEEP = {"test_verified_change_blocked_for_app_role", "test_observation_requires_ok_fetch_of_same_source", "test_identical_observation_not_duplicated"}
+KEEP = {"test_full_reconcile_flow_and_immutability"}
 
 
 def pytest_collection_modifyitems(config, items):
