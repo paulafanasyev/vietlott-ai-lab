@@ -242,5 +242,7 @@ def app(environ, start_response):
     except Exception as exc:  # không lộ chuỗi kết nối: chỉ tên lỗi và thông điệp
         status_line, headers, body = "500 Internal Server Error", JSON_HDR, _j(
             {"ok": False, "error_vi": f"Lỗi máy chủ: {type(exc).__name__}: {str(exc)[:500]}"})
+    if q.get("debug") == "1":  # chẩn đoán: luôn 200 để công cụ bên ngoài đọc được nội dung lỗi
+        status_line = "200 OK"
     start_response(status_line, headers + [("Content-Length", str(len(body)))])
     return [body]
