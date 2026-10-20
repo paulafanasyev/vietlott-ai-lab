@@ -7,6 +7,8 @@ Mọi văn bản trả cho người dùng bằng tiếng Việt. Một hàm duy 
   /api/export  — xuất dữ liệu (?kind=draws|history|observations|conflicts&format=csv|json&game=)
   /api/backtest — kiểm định walk-forward các phương pháp so với ngẫu nhiên (?game=mega645|power655)
   /api/live    — dự đoán live (ghi trước giờ quay) và kết quả đối chiếu (?game=mega645|power655)
+  /api/research — giả thuyết và thí nghiệm, kể cả thất bại (?game=mega645|power655)
+  /api/knowledge — tìm trong kho tri thức (?q=...)
 """
 
 from __future__ import annotations
@@ -114,8 +116,19 @@ def do_ingest(trigger: str) -> dict:
         live_ok = True
     except Exception as exc:
         live, live_ok = f"Dự đoán: LỖI {type(exc).__name__}: {str(exc)[:400]}", False
-    return {"ok": code == 0 and live_ok, "exit_code": code, "migrations_applied": applied,
-            "summary_vi": buf.getvalue(), "live_vi": live}
+    # Giai đoạn 4: vòng giả thuyết (giao dịch riêng).
+    try:
+        from vlab.research import run_research
+        rconn = connect()
+        try:
+            research_vi = run_research(rconn, os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown"))
+        finally:
+            rconn.close()
+        research_ok = True
+    except Exception as exc:
+        research_vi, research_ok = f"Nghiên cứu: LỖI {type(exc).__name__}: {str(exc)[:400]}", False
+    return {"ok": code == 0 and live_ok and research_ok, "exit_code": code, "migrations_applied": applied,
+            "summary_vi": buf.getvalue(), "live_vi": live, "research_vi": research_vi}
 
 
 # ---------------------------------------------------------------- đọc dữ liệu
@@ -222,6 +235,17 @@ def live(game: str) -> dict:
         conn.close()
 
 
+def _with_conn(fn, *args):
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            if not _ready(cur):
+                return {"ready": False}
+        return fn(conn, *args)
+    finally:
+        conn.close()
+
+
 # ---------------------------------------------------------------- định tuyến
 def health() -> dict:
     """Luôn trả 200: chẩn đoán từng bước (biến môi trường, thư viện, kết nối, lược đồ) mà không lộ bí mật."""
@@ -230,7 +254,8 @@ def health() -> dict:
                                          "POSTGRES_URL") if os.environ.get(k)],
                  "migrations_dir": (ROOT / "db" / "migrations").is_dir(),
                  "worker_dir": (ROOT / "worker" / "vlab").is_dir()}
-    for mod in ("psycopg", "requests", "bs4", "lxml", "vlab.store", "vlab.ingest", "vlab.backtest", "vlab.live"):
+    for mod in ("psycopg", "requests", "bs4", "lxml", "vlab.store", "vlab.ingest", "vlab.backtest", "vlab.live",
+                "vlab.research"):
         try:
             __import__(mod)
             out[mod] = "ok"
@@ -287,6 +312,15 @@ def route(path: str, q: dict, environ) -> tuple[str, list, bytes]:
         if game not in GAMES:
             return "400 Bad Request", JSON_HDR, _j({"error_vi": f"Trò chơi không hợp lệ: {game}"})
         return "200 OK", JSON_HDR, _j(live(game))
+    if name == "research":
+        game = q.get("game", "mega645")
+        if game not in GAMES:
+            return "400 Bad Request", JSON_HDR, _j({"error_vi": f"Trò chơi không hợp lệ: {game}"})
+        from vlab.research import research_report
+        return "200 OK", JSON_HDR, _j(_with_conn(research_report, game))
+    if name == "knowledge":
+        from vlab.research import search_knowledge
+        return "200 OK", JSON_HDR, _j(_with_conn(search_knowledge, q.get("q", "")))
     if name == "export":
         kind, fmt, game = q.get("kind", "draws"), q.get("format", "csv"), q.get("game") or None
         if kind not in KINDS or fmt not in ("csv", "json") or (game and game not in GAMES):
