@@ -1,4 +1,4 @@
-KEEP = {"test_migration_applied_once", "test_full_reconcile_flow_and_immutability", "test_conflict_on_first_sight_records_conflict"}
+KEEP = {"test_migration_applied_once"}
 
 
 def pytest_collection_modifyitems(config, items):
