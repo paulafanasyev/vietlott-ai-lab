@@ -11,6 +11,7 @@ Mọi văn bản trả cho người dùng bằng tiếng Việt. Một hàm duy 
   /api/knowledge — tìm trong kho tri thức (?q=...)
   /api/automation — nhật ký tác vụ, báo cáo, sao lưu và kết quả thử khôi phục
   /api/backup  — tải bản sao lưu đầy đủ (JSON nén gzip, kèm băm từng bảng)
+  /api/acceptance — nghiệm thu tự động 14 mục trên CSDL thật
 """
 
 from __future__ import annotations
@@ -229,14 +230,14 @@ def backtest(game: str) -> dict:
     return {"ready": True, **cached[1]}
 
 
-def live(game: str) -> dict:
+def live(game: str, limit: int = 30) -> dict:
     from vlab.live import live_report
     conn = connect()
     try:
         with conn.cursor() as cur:
             if not _ready(cur):
                 return {"ready": False}
-        return live_report(conn, game)
+        return live_report(conn, game, limit)
     finally:
         conn.close()
 
@@ -270,7 +271,7 @@ def health() -> dict:
                  "migrations_dir": (ROOT / "db" / "migrations").is_dir(),
                  "worker_dir": (ROOT / "worker" / "vlab").is_dir()}
     for mod in ("psycopg", "requests", "bs4", "lxml", "vlab.store", "vlab.ingest", "vlab.backtest", "vlab.live",
-                "vlab.research", "vlab.automation"):
+                "vlab.research", "vlab.automation", "vlab.acceptance"):
         try:
             __import__(mod)
             out[mod] = "ok"
@@ -326,7 +327,11 @@ def route(path: str, q: dict, environ) -> tuple[str, list, bytes]:
         game = q.get("game", "mega645")
         if game not in GAMES:
             return "400 Bad Request", JSON_HDR, _j({"error_vi": f"Trò chơi không hợp lệ: {game}"})
-        return "200 OK", JSON_HDR, _j(live(game))
+        try:
+            limit = max(1, min(int(q.get("limit", "30")), 200))
+        except ValueError:
+            limit = 30
+        return "200 OK", JSON_HDR, _j(live(game, limit))
     if name == "research":
         game = q.get("game", "mega645")
         if game not in GAMES:
@@ -336,6 +341,9 @@ def route(path: str, q: dict, environ) -> tuple[str, list, bytes]:
     if name == "knowledge":
         from vlab.research import search_knowledge
         return "200 OK", JSON_HDR, _j(_with_conn(search_knowledge, q.get("q", "")))
+    if name == "acceptance":
+        from vlab.acceptance import run_acceptance
+        return "200 OK", JSON_HDR, _j(_with_conn(run_acceptance))
     if name == "automation":
         from vlab.automation import automation_report
         return "200 OK", JSON_HDR, _j(_with_conn(automation_report))

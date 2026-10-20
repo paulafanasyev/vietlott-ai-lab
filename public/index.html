@@ -8,333 +8,417 @@
   :root { --bg:#f6f7fb; --card:#fff; --ink:#1d2433; --mute:#667085; --line:#e4e7ec; --acc:#4f46e5; }
   * { box-sizing:border-box; }
   body { margin:0; font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
-  header { padding:20px 16px 8px; max-width:960px; margin:auto; }
+  header { padding:16px 16px 0; max-width:1040px; margin:auto; }
   h1 { margin:0; font-size:22px; }
+  h2 { margin:0 0 6px; font-size:18px; }
   .note { color:var(--mute); font-size:13px; margin-top:4px; }
-  main { max-width:960px; margin:auto; padding:8px 16px 40px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:14px; }
+  .disc { background:#fff1f2; border:1px solid #fecdd3; color:#9f1239; border-radius:12px; padding:10px 12px; margin-top:10px; font-weight:600; }
+  nav { max-width:1040px; margin:10px auto 0; padding:0 16px; display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; }
+  nav a { flex:none; text-decoration:none; color:var(--ink); background:#eef0f6; border-radius:999px; padding:6px 12px; font-size:13px; white-space:nowrap; }
+  nav a.on { background:var(--acc); color:#fff; }
+  main { max-width:1040px; margin:auto; padding:4px 16px 40px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:12px; }
   .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   button, a.btn { border:0; border-radius:10px; padding:9px 14px; font:inherit; cursor:pointer; text-decoration:none;
                   background:var(--acc); color:#fff; display:inline-block; }
   a.btn.sec, button.sec { background:#eef0f6; color:var(--ink); }
   button:disabled { opacity:.6; cursor:wait; }
-  .tabs button { background:#eef0f6; color:var(--ink); }
+  .tabs button { background:#eef0f6; color:var(--ink); padding:6px 12px; }
   .tabs button.on { background:var(--acc); color:#fff; }
   table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
   th, td { text-align:left; padding:7px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
   th { color:var(--mute); font-weight:600; font-size:12px; }
   .ball { display:inline-block; min-width:26px; padding:2px 0; margin:1px; border-radius:13px; text-align:center;
           background:#eef0f6; font-weight:600; font-variant-numeric:tabular-nums; }
-  .ball.b { background:#fde68a; }
+  .ball.b { background:#fde68a; } .ball.h { background:#bbf7d0; }
   .st { font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap; }
   .VERIFIED { background:#dcfce7; color:#166534; } .CROSS-CHECKED { background:#dbeafe; color:#1e40af; }
   .NOT-PROVEN { background:#f3f4f6; color:#374151; } .CONFLICT { background:#fee2e2; color:#991b1b; }
   .PENDING { background:#fef9c3; color:#854d0e; }
-  .chips span { margin-right:10px; }
-  pre { white-space:pre-wrap; font-size:12px; background:#f8fafc; border-radius:8px; padding:10px; max-height:260px; overflow:auto; }
-  .ok { color:#166534; } .bad { color:#991b1b; }
+  .chips span { margin-right:12px; display:inline-block; }
+  pre { white-space:pre-wrap; font-size:12px; background:#f8fafc; border-radius:8px; padding:10px; max-height:320px; overflow:auto; }
+  .ok { color:#166534; } .bad { color:#991b1b; } .wait { color:#854d0e; }
   .scroll { overflow-x:auto; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:10px; }
   .goals { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin-top:10px; }
   .goal { background:#f8fafc; border:1px solid var(--line); border-radius:10px; padding:10px; }
   .goal b { font-size:18px; display:block; }
   .warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:10px; margin-top:10px; font-size:13px; }
+  section.page { display:none; } section.page.on { display:block; }
+  input.q { flex:1; min-width:200px; padding:9px; border:1px solid var(--line); border-radius:10px; font:inherit; }
 </style>
 </head>
 <body>
 <header>
   <h1>Vietlott AI Lab</h1>
-  <div class="note">Nghiên cứu Mega 6/45 và Power 6/55. Xổ số là ngẫu nhiên: hệ thống chỉ đo lường, không hứa hẹn tăng cơ hội trúng thưởng.</div>
+  <div class="note">Phòng nghiên cứu Mega 6/45 và Power 6/55: đo lường trung thực xem có phương pháp nào khác ngẫu nhiên hay không.</div>
+  <div class="disc">Xổ số là ngẫu nhiên. Không phương pháp nào đảm bảo trúng thưởng.</div>
 </header>
-<main>
-  <section class="card">
-    <div class="row" style="justify-content:space-between">
-      <strong>Tình trạng dữ liệu</strong>
-      <button id="run">Chạy thu thập ngay</button>
-    </div>
-    <div id="status" class="note">Đang tải…</div>
-  </section>
-
-  <section class="card">
-    <div class="row tabs">
-      <button data-g="mega645" class="on">Mega 6/45</button>
-      <button data-g="power655">Power 6/55</button>
-    </div>
-    <div id="draws" class="note">Đang tải…</div>
-  </section>
-
-  <section class="card">
-    <strong>Kiểm định phương pháp (walk-forward)</strong>
-    <div class="note">Với mỗi kỳ, mỗi phương pháp chỉ được nhìn các kỳ trước đó, rồi so vé của nó với kết quả thật.
-      Chỉ dùng các kỳ VERIFIED / CROSS-CHECKED.</div>
-    <div id="bt" class="note">Đang tải…</div>
-  </section>
-
-  <section class="card">
-    <strong>Dự đoán live và tự học</strong>
-    <div class="note">Mỗi ngày hệ thống ghi vé của từng phương pháp cho kỳ kế tiếp TRƯỚC giờ quay (CSDL từ chối vé ghi muộn),
-      rồi đối chiếu khi có kết quả. M8 tự điều chỉnh trọng số theo thành tích các kỳ trước.</div>
-    <div id="live" class="note">Đang tải…</div>
-  </section>
-
-  <section class="card">
-    <strong>Phòng thí nghiệm giả thuyết</strong>
-    <div class="note">Bộ sinh giả thuyết tự đề xuất quy tắc, kiểm trên 60% dữ liệu đầu (dev), quyết định trên 20% tiếp theo
-      (validation, hiệu chỉnh Benjamini–Hochberg) và chỉ dùng 20% cuối (test niêm phong) một lần. Thất bại cũng được lưu.</div>
-    <div id="lab" class="note">Đang tải…</div>
-  </section>
-
-  <section class="card">
-    <strong>Kho tri thức</strong>
-    <div class="row" style="margin-top:8px">
-      <input id="kq" placeholder="Tìm: Benjamini, số lạnh, Power…" style="flex:1;min-width:200px;padding:9px;border:1px solid var(--line);border-radius:10px;font:inherit">
-      <button id="ks" class="sec">Tìm</button>
-    </div>
-    <div id="kb" class="note">Đang tải…</div>
-  </section>
-
-  <section class="card">
-    <div class="row" style="justify-content:space-between">
-      <strong>Tự động hóa, báo cáo và sao lưu</strong>
-      <a class="btn sec" href="/api/backup">Tải bản sao lưu đầy đủ</a>
-    </div>
-    <div id="auto" class="note">Đang tải…</div>
-  </section>
-
-  <section class="card">
-    <strong>Xuất dữ liệu</strong>
-    <div class="note">Toàn bộ lịch sử chỉ được ghi thêm, không bao giờ sửa hay xóa.</div>
-    <div class="row" style="margin-top:8px">
-      <a class="btn sec" href="/api/export?kind=draws&format=csv">Kết quả (CSV)</a>
-      <a class="btn sec" href="/api/export?kind=draws&format=json">Kết quả (JSON)</a>
-      <a class="btn sec" href="/api/export?kind=history&format=csv">Lịch sử phiên bản</a>
-      <a class="btn sec" href="/api/export?kind=observations&format=csv">Quan sát từ các nguồn</a>
-      <a class="btn sec" href="/api/export?kind=conflicts&format=csv">Xung đột</a>
-    </div>
-  </section>
-
-  <section class="card">
-    <strong>Ý nghĩa trạng thái</strong>
-    <table>
-      <tr><td><span class="st VERIFIED">VERIFIED</span></td><td>Nguồn chính thức vietlott.vn khớp với ít nhất một kho lưu trữ độc lập.</td></tr>
-      <tr><td><span class="st CROSS-CHECKED">CROSS-CHECKED</span></td><td>Ít nhất hai kho lưu trữ độc lập khớp nhau, chưa có xác nhận trực tiếp từ nguồn chính thức.</td></tr>
-      <tr><td><span class="st NOT-PROVEN">NOT PROVEN</span></td><td>Chỉ một nhóm nguồn gốc; chưa đủ để dùng trong tính toán.</td></tr>
-      <tr><td><span class="st CONFLICT">CONFLICT</span></td><td>Các nguồn mâu thuẫn; kỳ này bị loại khỏi mọi tính toán.</td></tr>
-      <tr><td><span class="st PENDING">PENDING</span></td><td>Theo lịch đã quay nhưng chưa nguồn nào công bố kết quả.</td></tr>
-    </table>
-  </section>
-</main>
+<nav id="nav"></nav>
+<main id="main"></main>
 <script>
 const $ = s => document.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const GN = {mega645: "Mega 6/45", power655: "Power 6/55"};
+const MAXN = {mega645: 45, power655: 55};
 const RUN = {success: "thành công", partial: "một phần", failed: "lỗi", skipped: "bỏ qua"};
+const JOBN = {ingest: "Thu thập", live: "Vé live", research: "Giả thuyết", report: "Báo cáo", backup: "Sao lưu"};
+const pad = n => String(n).padStart(2, "0");
+const nf = n => Number(n).toLocaleString("vi-VN");
+const pct = p => { const x = p * 100; return (x < 0.01 ? x.toExponential(2) : x.toFixed(x < 1 ? 3 : 2)) + "%"; };
+const fmtTime = t => t ? new Date(t).toLocaleString("vi-VN", {timeZone: "Asia/Ho_Chi_Minh"}) : "—";
+const balls = (a, hit) => (a || []).map(n => "<span class='ball" + (hit && hit.includes(n) ? " h" : "") + "'>" + pad(n) + "</span>").join("");
+const err = j => '<span class="bad">' + esc(j.error_vi || "Lỗi") + "</span>";
+
+const cache = {};
+async function api(url, fresh) {
+  if (!fresh && cache[url]) return cache[url];
+  const p = fetch(url).then(async r => ({ok: r.ok, j: await r.json().catch(() => ({error_vi: "Phản hồi không hợp lệ (" + r.status + ")"}))}));
+  cache[url] = p;
+  const res = await p;
+  if (!res.ok) delete cache[url];
+  return res;
+}
+
+const PAGES = [
+  ["tong-quan", "1. Tổng quan", pOverview],
+  ["du-doan-mega", "2. Dự đoán Mega 6/45", () => pPredict("mega645")],
+  ["du-doan-power", "3. Dự đoán Power 6/55", () => pPredict("power655")],
+  ["lich-su-du-doan", "4. Lịch sử dự đoán", pPredHistory],
+  ["lich-su-ket-qua", "5. Lịch sử kết quả", pResults],
+  ["doi-chieu", "6. Đối chiếu dự đoán và kết quả", pCompare],
+  ["thuat-toan", "7. Phòng thí nghiệm thuật toán", pBacktest],
+  ["tu-hoc", "8. Trung tâm thử nghiệm và tự học", pLab],
+  ["kien-thuc", "9. Kho kiến thức", pKB],
+  ["nguon", "10. Nguồn dữ liệu và trạng thái kiểm chứng", pSources],
+  ["bieu-do", "11. Biểu đồ hiệu quả", pCharts],
+  ["tu-dong", "12. Cài đặt tự động hóa", pAutoSettings],
+  ["nhat-ky", "13. Nhật ký hoạt động và lỗi", pLog],
+  ["sao-luu", "14. Sao lưu và xuất dữ liệu", pBackup],
+];
 let game = "mega645";
 
-function fmtTime(t) { return t ? new Date(t).toLocaleString("vi-VN", {timeZone: "Asia/Ho_Chi_Minh"}) : "—"; }
+function gameTabs(rerender) {
+  setTimeout(() => document.querySelectorAll(".gt button").forEach(b => b.onclick = () => { game = b.dataset.g; rerender(); }), 0);
+  return "<div class='row tabs gt'>" + Object.entries(GN).map(([g, n]) =>
+    "<button data-g='" + g + "' class='" + (g === game ? "on" : "") + "'>" + n + "</button>").join("") + "</div>";
+}
+function card(title, body, note) {
+  return "<div class='card'>" + (title ? "<h2>" + title + "</h2>" : "") + (note ? "<div class='note'>" + note + "</div>" : "") + body + "</div>";
+}
+function setMain(h) { $("#main").innerHTML = h; }
 
-async function getJSON(url, opt) {
-  const r = await fetch(url, opt);
-  const j = await r.json().catch(() => ({error_vi: "Phản hồi không hợp lệ (" + r.status + ")"}));
-  return {ok: r.ok, j};
+// ---------------------------------------------------------------- xác suất cho một BỘ vé
+function setChance(tickets, n) {
+  // Mô phỏng Monte Carlo 200 000 kỳ quay: xác suất ít nhất một vé của bộ đạt 3+ / 4+.
+  const SIMS = 200000, k = tickets.length, pool = Array.from({length: n}, (_, i) => i + 1), mark = new Uint8Array(n + 1);
+  let c3 = 0, c4 = 0;
+  for (let s = 0; s < SIMS; s++) {
+    for (let i = 0; i < 6; i++) { const j = i + Math.floor(Math.random() * (n - i)); const t = pool[i]; pool[i] = pool[j]; pool[j] = t; mark[pool[i]] = 1; }
+    let best = 0;
+    for (const t of tickets) { let h = 0; for (const x of t) h += mark[x]; if (h > best) best = h; }
+    if (best >= 3) c3++; if (best >= 4) c4++;
+    for (let i = 0; i < 6; i++) mark[pool[i]] = 0;
+  }
+  return {k, p3: c3 / SIMS, p4: c4 / SIMS};
+}
+function comb(n, r) { let x = 1; for (let i = 0; i < r; i++) x = x * (n - i) / (i + 1); return x; }
+function pAtLeast(n, m) { let s = 0; for (let j = m; j <= 6; j++) s += comb(6, j) * comb(n - 6, 6 - j) / comb(n, 6); return s; }
+
+// ---------------------------------------------------------------- 1. Tổng quan
+async function pOverview() {
+  setMain(card("Tổng quan", "<div id='ov' class='note'>Đang tải…</div>"));
+  const [st, lm, lp, au, ac, bm, bp] = await Promise.all([api("/api/status"), api("/api/live?game=mega645"), api("/api/live?game=power655"),
+    api("/api/automation"), api("/api/acceptance"), api("/api/backtest?game=mega645"), api("/api/backtest?game=power655")]);
+  if (!st.ok) { $("#ov").innerHTML = err(st.j); return; }
+  if (!st.j.ready) { $("#ov").textContent = st.j.message_vi; return; }
+  let h = "<div class='grid'>";
+  for (const [g, lv, bt] of [["mega645", lm, bm], ["power655", lp, bp]]) {
+    const l = st.j.latest[g], d = (st.j.counts[g] || {});
+    h += "<div class='goal'><b>" + GN[g] + "</b>Kỳ mới nhất: " + (l ? l.draw_no + " (" + esc(l.draw_date) + ")" : "—") + "<br>";
+    for (const [k, v] of Object.entries(d)) h += "<span class='st " + k.replace(" ", "-") + "'>" + k + "</span> " + v + " ";
+    const up = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result) : null;
+    const last = lv.ok && lv.j.draws ? lv.j.draws.find(x => x.result) : null;
+    h += "<div style='margin-top:6px'>" + (up ? "Vé cho kỳ <b>" + up.draw_no + "</b> (quay " + fmtTime(up.draw_at) + "): đã ghi " + up.tickets.length + " vé"
+          : "Vé kỳ tới: sẽ ghi ở lần chạy kế tiếp") + "</div>";
+    if (last) { const best = Math.max(...last.tickets.map(t => t.hits ?? 0)); h += "<div>Đối chiếu gần nhất: kỳ " + last.draw_no + ", vé tốt nhất trúng " + best + " số</div>"; }
+    if (bt.ok && bt.j.methods) {
+      const good = bt.j.methods.filter(m => m.verdict_vi.startsWith("TỐT"));
+      h += "<div class='note'>" + (good.length ? "Khác ngẫu nhiên có ý nghĩa: " + good.map(m => m.code).join(", ") : "Không phương pháp nào tốt hơn ngẫu nhiên (kiểm định trên " + nf(bt.j.methods[0].draws) + " kỳ).") + "</div>";
+    }
+    h += "<a href='#" + (g === "mega645" ? "du-doan-mega" : "du-doan-power") + "'>Xem dự đoán →</a></div>";
+  }
+  h += "</div>";
+  const it = st.j.integrity;
+  h += "<div style='margin-top:10px'>Toàn vẹn dữ liệu: " + (it.ok ? "<span class='ok'>đúng</span>" : "<span class='bad'>PHÁT HIỆN SAI LỆCH</span>") + "</div>";
+  if (au.ok && au.j.ready) h += "<div class='chips'>Lần thành công gần nhất: " + Object.entries(au.j.last_ok).map(([n, t]) => "<span><b>" + (JOBN[n] || n) + "</b> " + fmtTime(t) + "</span>").join("") + "</div>";
+  $("#ov").innerHTML = h;
+  if (ac.ok && ac.j.ready) {
+    const s = ac.j.summary;
+    let a = "<div class='note'>Kiểm tra lúc " + fmtTime(ac.j.checked_at) + ": <span class='ok'>ĐẠT " + s["ĐẠT"] + "</span> · <span class='wait'>ĐANG CHỜ " + s["ĐANG CHỜ"]
+          + "</span> · <span class='bad'>CHƯA ĐẠT " + s["CHƯA ĐẠT"] + "</span></div><table><tr><th>#</th><th>Tiêu chí</th><th>Kết quả</th><th>Bằng chứng</th></tr>";
+    for (const i of ac.j.items) {
+      const c = i.status === "ĐẠT" ? "ok" : i.status === "ĐANG CHỜ" ? "wait" : "bad";
+      a += "<tr><td>" + i.no + "</td><td>" + esc(i.title_vi) + "</td><td class='" + c + "'><b>" + i.status + "</b></td><td class='note'>" + esc(i.evidence_vi) + "</td></tr>";
+    }
+    $("#main").insertAdjacentHTML("beforeend", card("Nghiệm thu 14 mục (kiểm tra trực tiếp trên CSDL)", "<div class='scroll'>" + a + "</table></div>"));
+  }
 }
 
-async function loadStatus() {
-  const {ok, j} = await getJSON("/api/status");
-  if (!ok) { $("#status").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
-  if (!j.ready) { $("#status").textContent = j.message_vi; return; }
+// ---------------------------------------------------------------- 2–3. Dự đoán
+async function pPredict(g) {
+  setMain(card("Dự đoán " + GN[g], "<div id='pr' class='note'>Đang tải…</div>",
+    "Mỗi phương pháp ghi một vé cho kỳ tới TRƯỚC giờ quay (CSDL từ chối vé ghi muộn). Vé được ghi ngay sau khi có kết quả kỳ trước: 3 kỳ mỗi tuần cho mỗi trò chơi."));
+  const [lv, bt] = await Promise.all([api("/api/live?game=" + g), api("/api/backtest?game=" + g)]);
+  if (!lv.ok) { $("#pr").innerHTML = err(lv.j); return; }
+  const up = (lv.j.draws || []).find(x => !x.result);
   let h = "";
-  for (const g of ["mega645", "power655"]) {
-    const c = j.counts[g] || {}, l = j.latest[g];
-    h += "<div class='chips'><b>" + GN[g] + "</b>: " + (l ? "kỳ mới nhất " + l.draw_no + " (" + esc(l.draw_date) + ")" : "chưa có") + "<br>";
-    for (const [k, v] of Object.entries(c)) h += "<span><span class='st " + k.replace(" ", "-") + "'>" + k + "</span> " + v + "</span>";
+  if (!up) h += "<div>Vé cho kỳ tới sẽ được ghi ở lần chạy kế tiếp (sau khi có kết quả kỳ vừa quay).</div>";
+  else {
+    h += "<div style='font-size:16px;margin-top:6px'>Kỳ <b>" + up.draw_no + "</b> · quay lúc <b>" + fmtTime(up.draw_at) + "</b> · vé ghi lúc " + fmtTime(up.created_at) + "</div><table><tr><th>Phương pháp</th><th>Vé</th><th>Giải thích</th></tr>";
+    for (const t of up.tickets) h += "<tr><td><b>" + t.code + "</b></td><td>" + balls(t.numbers) + "</td><td class='note'>" + esc(t.explanation_vi) + "</td></tr>";
+    h += "</table><div id='sc' class='note'>Đang tính xác suất của cả bộ vé…</div>";
+  }
+  const o = lv.j.goal_odds;
+  if (o) {
+    h += "<div style='margin-top:12px'><b>Xác suất của MỘT vé bất kỳ</b> (mọi phương pháp như nhau)</div><div class='goals'>";
+    for (const k of ["6", "5", "4", "3"]) h += "<div class='goal'><span class='note'>" + (k === "6" ? "Độc đắc" : "Đúng " + k + " số") + "</span><b>1 trên " + nf(o[k].one_in) + "</b><span class='note'>" + pct(o[k].p) + "</span></div>";
     h += "</div>";
   }
-  const it = j.integrity;
-  h += "<div style='margin-top:8px'>Toàn vẹn: " + (it.ok ? "<span class='ok'>đúng</span>" : "<span class='bad'>PHÁT HIỆN SAI LỆCH</span>")
-     + (it.checkpoint_id ? " · điểm kiểm tra #" + it.checkpoint_id : "") + "</div>";
-  if (j.runs.length) {
-    const r = j.runs[0];
-    h += "<div>Lần chạy gần nhất: " + fmtTime(r.finished_at) + " · " + (RUN[r.status] || r.status) + "</div>";
-    h += "<details><summary>Báo cáo</summary><pre>" + esc(r.summary_vi) + "</pre></details>";
-  }
-  $("#status").innerHTML = h;
+  if (bt.ok && bt.j.learn_weights) h += "<div class='note' style='margin-top:10px'>Trọng số tự học M8: " + Object.entries(bt.j.learn_weights).map(([c, w]) => c + " " + (w * 100).toFixed(1) + "%").join(" · ") + "</div>";
+  h += "<div class='warn'>Chọn số bằng phương pháp nào thì xác suất trúng của mỗi vé vẫn như vé ngẫu nhiên. Bảng kiểm định ở mục 7 cho thấy chưa phương pháp nào khác ngẫu nhiên.</div>";
+  $("#pr").innerHTML = h;
+  if (up) setTimeout(() => {
+    const n = MAXN[g], uniq = [...new Map(up.tickets.map(t => [t.numbers.join(","), t.numbers])).values()];
+    const s = setChance(uniq, n), r3 = 1 - Math.pow(1 - pAtLeast(n, 3), s.k), r4 = 1 - Math.pow(1 - pAtLeast(n, 4), s.k);
+    const p5 = s.k * pAtLeast(n, 5), p6 = s.k / comb(n, 6);
+    $("#sc").innerHTML = "<div style='margin-top:10px'><b>Cả bộ " + s.k + " vé khác nhau</b> (ít nhất một vé đạt), so với " + s.k + " vé ngẫu nhiên:</div><div class='goals'>"
+      + "<div class='goal'><span class='note'>Từ 3 số</span><b>" + pct(s.p3) + "</b><span class='note'>ngẫu nhiên: " + pct(r3) + "</span></div>"
+      + "<div class='goal'><span class='note'>Từ 4 số</span><b>" + pct(s.p4) + "</b><span class='note'>1 trên " + nf(Math.round(1 / Math.max(s.p4, 1e-9))) + " · ngẫu nhiên: " + pct(r4) + "</span></div>"
+      + "<div class='goal'><span class='note'>Từ 5 số</span><b>1 trên " + nf(Math.round(1 / p5)) + "</b><span class='note'>ngẫu nhiên: như nhau</span></div>"
+      + "<div class='goal'><span class='note'>Độc đắc</span><b>1 trên " + nf(Math.round(1 / p6)) + "</b><span class='note'>ngẫu nhiên: như nhau</span></div></div>"
+      + "<div class='note'>3+ và 4+: mô phỏng 200 000 kỳ quay (sai số khoảng ±0,2 điểm %); 5+ và độc đắc: công thức chính xác/xấp xỉ.</div>";
+  }, 30);
 }
 
-async function loadDraws() {
-  $("#draws").textContent = "Đang tải…";
-  const {ok, j} = await getJSON("/api/draws?game=" + game + "&limit=60");
-  if (!ok) { $("#draws").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
-  if (!j.ready || !j.rows.length) { $("#draws").textContent = "Chưa có dữ liệu."; return; }
-  let h = "<table><tr><th>Kỳ</th><th>Ngày</th><th>Bộ số</th><th>Trạng thái</th></tr>";
+// ---------------------------------------------------------------- 4. Lịch sử dự đoán
+function liveDraw(d) {
+  let h = "<div style='margin-top:12px'><b>Kỳ " + d.draw_no + "</b> · quay " + fmtTime(d.draw_at) + " · vé ghi " + fmtTime(d.created_at) + "<br>"
+    + (d.result ? "Kết quả: " + balls(d.result) + (d.bonus != null ? " <span class='ball b'>" + pad(d.bonus) + "</span>" : "") : "<span class='note'>Chưa quay / chưa có kết quả</span>") + "</div><table>";
+  for (const t of d.tickets) {
+    const hit = t.hits == null ? "—" : t.hits + " số" + (t.bonus_hit ? " + ĐB" : "") + (t.prize_tier ? " · " + t.prize_tier : "");
+    h += "<tr title='" + esc(t.explanation_vi) + "'><td><b>" + t.code + "</b></td><td>" + balls(t.numbers, d.result) + "</td><td>" + hit + "</td></tr>";
+  }
+  return h + "</table>";
+}
+async function pPredHistory() {
+  setMain(card("Lịch sử dự đoán", gameTabs(pPredHistory) + "<div id='ph' class='note'>Đang tải…</div>", "Mọi vé live đã ghi, kể cả vé chưa quay. Không vé nào bị sửa hay xóa."));
+  const {ok, j} = await api("/api/live?game=" + game + "&limit=200");
+  if (!ok) { $("#ph").innerHTML = err(j); return; }
+  $("#ph").innerHTML = j.draws.length ? j.draws.map(liveDraw).join("") : "Chưa có vé live.";
+}
+
+// ---------------------------------------------------------------- 5. Lịch sử kết quả
+async function pResults() {
+  setMain(card("Lịch sử kết quả", gameTabs(pResults) + "<div id='rs' class='note'>Đang tải…</div>"));
+  const {ok, j} = await api("/api/draws?game=" + game + "&limit=200");
+  if (!ok) { $("#rs").innerHTML = err(j); return; }
+  if (!j.ready || !j.rows.length) { $("#rs").textContent = "Chưa có dữ liệu."; return; }
+  let h = "<div class='scroll'><table><tr><th>Kỳ</th><th>Ngày</th><th>Bộ số</th><th>Trạng thái</th></tr>";
   for (const r of j.rows) {
-    const balls = (r.main_numbers || []).map(n => "<span class='ball'>" + String(n).padStart(2, "0") + "</span>").join("")
-      + (r.bonus_number != null ? " <span class='ball b'>" + String(r.bonus_number).padStart(2, "0") + "</span>" : "");
-    h += "<tr title='" + esc(r.reason_vi) + "'><td>" + r.draw_no + "</td><td>" + esc(r.draw_date || "") + "</td><td>"
-       + (balls || "—") + "</td><td><span class='st " + r.status.replace(" ", "-") + "'>" + r.status + "</span></td></tr>";
+    const b = balls(r.main_numbers) + (r.bonus_number != null ? " <span class='ball b'>" + pad(r.bonus_number) + "</span>" : "");
+    h += "<tr title='" + esc(r.reason_vi) + "'><td>" + r.draw_no + "</td><td>" + esc(r.draw_date || "") + "</td><td>" + (b || "—") + "</td><td><span class='st " + r.status.replace(" ", "-") + "'>" + r.status + "</span></td></tr>";
   }
-  $("#draws").innerHTML = h + "</table>";
+  $("#rs").innerHTML = h + "</table></div><div class='note'>200 kỳ gần nhất. Toàn bộ: mục 14 (xuất CSV/JSON).</div>";
 }
 
-const GOAL = {"6": "Độc đắc (6 số)", "5": "Từ 5 số", "4": "Từ 4 số", "3": "Từ 3 số"};
-const pct = p => (p * 100 < 0.01 ? (p * 100).toExponential(2) : (p * 100).toFixed(p * 100 < 1 ? 3 : 2)) + "%";
-const nf = n => Number(n).toLocaleString("vi-VN");
-const balls = a => a.map(n => "<span class='ball'>" + String(n).padStart(2, "0") + "</span>").join("");
-
-async function loadBacktest() {
-  $("#bt").textContent = "Đang tính… (lần đầu có thể mất vài giây)";
-  const g = game;
-  const {ok, j} = await getJSON("/api/backtest?game=" + g);
-  if (g !== game) return;
-  if (!ok) { $("#bt").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
-  if (!j.ready || !j.methods) { $("#bt").textContent = "Chưa có dữ liệu."; return; }
-  let h = "<div style='margin-top:6px'>" + GN[g] + ": " + nf(j.draws_used) + " kỳ (" + j.first_draw + "–" + j.last_draw
-        + "), " + j.warmup + " kỳ đầu chỉ để học → chấm điểm trên " + nf(j.methods[0].draws) + " kỳ.</div>";
-  h += "<div class='goals'>";
-  for (const k of ["6", "5", "4", "3"]) {
-    const o = j.goal_odds[k];
-    h += "<div class='goal'><span class='note'>" + (k === "6" ? "Độc đắc" : "Đúng " + k + " số") + " · 1 vé</span><b>1 trên "
-       + nf(o.one_in) + "</b><span class='note'>" + pct(o.p) + "</span></div>";
+// ---------------------------------------------------------------- 6. Đối chiếu
+async function pCompare() {
+  setMain(card("Đối chiếu dự đoán và kết quả", gameTabs(pCompare) + "<div id='cp' class='note'>Đang tải…</div>"));
+  const {ok, j} = await api("/api/live?game=" + game + "&limit=200");
+  if (!ok) { $("#cp").innerHTML = err(j); return; }
+  const sc = j.stats.filter(s => s.scored), done = j.draws.filter(d => d.result);
+  let h = "";
+  if (!sc.length) h += "<div>Chưa có kỳ nào được đối chiếu: vé live đầu tiên sẽ được chấm ngay sau kỳ quay đầu tiên.</div>";
+  else {
+    h += "<table><tr><th>Phương pháp</th><th>Vé đã chấm</th><th>TB số trúng</th><th>Từ 3 số (thực tế / kỳ vọng ngẫu nhiên)</th><th>Từ 4 số</th></tr>";
+    for (const s of sc) h += "<tr><td><b>" + s.code + "</b> " + esc(s.name_vi) + "</td><td>" + s.scored + "</td><td>" + s.mean_hits + " <span class='note'>(ngẫu nhiên " + s.random_mean_hits + ")</span></td><td>"
+      + s.goals["3"].actual + " / " + s.goals["3"].expected + "</td><td>" + s.goals["4"].actual + " / " + s.goals["4"].expected + "</td></tr>";
+    h += "</table>";
   }
-  h += "</div><div class='scroll'><table><tr><th>Phương pháp</th><th>TB số trúng / vé</th>";
-  for (const k of ["3", "4", "5", "6"]) h += "<th>" + GOAL[k] + "<br>thực tế / kỳ vọng ngẫu nhiên</th>";
+  h += done.map(liveDraw).join("") + "<div class='note'>" + esc(j.note_vi) + "</div>";
+  $("#cp").innerHTML = h;
+}
+
+// ---------------------------------------------------------------- 7. Thuật toán
+const GOAL = {"6": "Độc đắc", "5": "Từ 5 số", "4": "Từ 4 số", "3": "Từ 3 số"};
+async function pBacktest() {
+  setMain(card("Phòng thí nghiệm thuật toán", gameTabs(pBacktest) + "<div id='bt' class='note'>Đang tính… (lần đầu có thể mất vài giây)</div>",
+    "Walk-forward: với mỗi kỳ, phương pháp chỉ được nhìn các kỳ trước đó. Chỉ dùng kỳ VERIFIED / CROSS-CHECKED."));
+  const g = game, {ok, j} = await api("/api/backtest?game=" + g);
+  if (!ok) { $("#bt").innerHTML = err(j); return; }
+  if (!j.ready || !j.methods) { $("#bt").textContent = "Chưa có dữ liệu."; return; }
+  let h = "<div style='margin-top:6px'>" + GN[g] + ": " + nf(j.draws_used) + " kỳ (" + j.first_draw + "–" + j.last_draw + "), " + j.warmup + " kỳ đầu chỉ để học → chấm trên " + nf(j.methods[0].draws) + " kỳ.</div>";
+  h += "<div class='scroll'><table><tr><th>Phương pháp</th><th>TB số trúng / vé</th>";
+  for (const k of ["3", "4", "5", "6"]) h += "<th>" + GOAL[k] + "<br>thực tế / kỳ vọng</th>";
   h += "<th>Kết luận</th></tr>";
   for (const m of j.methods) {
-    const cls = m.verdict_vi.startsWith("TỐT") ? "ok" : m.verdict_vi.startsWith("KÉM") ? "bad" : "";
-    h += "<tr><td title='" + esc(m.description_vi) + "'><b>" + m.code + "</b> " + esc(m.name_vi) + "</td><td>"
-       + m.mean_hits.toFixed(3) + " <span class='note'>(ngẫu nhiên " + m.random_mean_hits.toFixed(3) + ")</span></td>";
-    for (const k of ["3", "4", "5", "6"]) {
-      const x = m.goals[k];
-      h += "<td>" + x.actual + " / " + x.expected + "<br><span class='note'>" + pct(x.actual_rate) + " vs " + pct(x.random_rate)
-         + " (1 trên " + nf(x.random_one_in) + ")</span></td>";
-    }
-    h += "<td class='" + cls + "'>" + esc(m.verdict_vi) + "<br><span class='note'>p = " + m.p_value + "</span></td></tr>";
+    const c = m.verdict_vi.startsWith("TỐT") ? "ok" : m.verdict_vi.startsWith("KÉM") ? "bad" : "";
+    h += "<tr><td title='" + esc(m.description_vi) + "'><b>" + m.code + "</b> " + esc(m.name_vi) + "</td><td>" + m.mean_hits.toFixed(3) + " <span class='note'>(ngẫu nhiên " + m.random_mean_hits.toFixed(3) + ")</span></td>";
+    for (const k of ["3", "4", "5", "6"]) { const x = m.goals[k]; h += "<td>" + x.actual + " / " + x.expected + "<br><span class='note'>" + pct(x.actual_rate) + " vs " + pct(x.random_rate) + "</span></td>"; }
+    h += "<td class='" + c + "'>" + esc(m.verdict_vi) + "<br><span class='note'>p = " + m.p_value + "</span></td></tr>";
   }
-  h += "</table></div><div class='note'>Kiểm định z cho số trúng trung bình, hiệu chỉnh Bonferroni cho "
-     + j.bonferroni_tests + " phương pháp (α = " + j.alpha + "). «Tốt hơn» chỉ khi p &lt; " + (j.alpha / j.bonferroni_tests).toFixed(4) + ".</div>";
-  h += "<div style='margin-top:12px'><b>Vé của từng phương pháp cho kỳ " + j.next_draw_no + "</b></div><table>";
-  for (const t of j.next_tickets) h += "<tr><td><b>" + t.code + "</b> " + esc(t.name_vi) + "</td><td>" + balls(t.numbers) + "</td></tr>";
-  h += "</table><div class='warn'>" + esc(j.note_vi) + " Xác suất trúng độc đắc của mỗi vé vẫn là 1 trên "
-     + nf(j.goal_odds["6"].one_in) + ".</div>";
+  h += "</table></div><div class='note'>Kiểm định z cho số trúng trung bình, hiệu chỉnh Bonferroni cho " + j.bonferroni_tests + " phương pháp (α = " + j.alpha + ").</div><div class='warn'>" + esc(j.note_vi) + "</div>";
   $("#bt").innerHTML = h;
-  lastWeights = j.learn_weights || null;
 }
 
-let lastWeights = null;
-async function loadLive() {
-  $("#live").textContent = "Đang tải…";
-  const g = game;
-  const {ok, j} = await getJSON("/api/live?game=" + g);
-  if (g !== game) return;
-  if (!ok) { $("#live").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
-  if (!j.ready) { $("#live").textContent = "Chưa có dữ liệu."; return; }
+// ---------------------------------------------------------------- 8. Tự học
+const HST = {proposed: "đề xuất", testing: "đang kiểm", rejected: "bác bỏ", supported_on_validation: "đạt validation", confirmed_on_test: "XÁC NHẬN"};
+async function pLab() {
+  setMain(card("Trung tâm thử nghiệm và tự học", gameTabs(pLab) + "<div id='lab' class='note'>Đang tải…</div>",
+    "Giả thuyết được kiểm trên 60% dữ liệu đầu (dev), quyết định trên 20% tiếp (validation, Benjamini–Hochberg), 20% cuối (test niêm phong) chỉ dùng một lần. Thất bại cũng được lưu."));
+  const g = game, [rs, bt] = await Promise.all([api("/api/research?game=" + g), api("/api/backtest?game=" + g)]);
+  if (!rs.ok) { $("#lab").innerHTML = err(rs.j); return; }
+  const j = rs.j;
   let h = "";
-  if (lastWeights) {
-    h += "<div style='margin-top:6px'><b>Trọng số tự học hiện tại (M8)</b>: "
-       + Object.entries(lastWeights).map(([c, w]) => c + " " + (w * 100).toFixed(1) + "%").join(" · ") + "</div>";
-  }
-  if (!j.draws.length) {
-    h += "<div style='margin-top:6px'>Chưa có vé live nào. Vé đầu tiên được ghi ở lần thu thập kế tiếp.</div>";
-  }
-  for (const d of j.draws.slice(0, 6)) {
-    h += "<div style='margin-top:12px'><b>Kỳ " + d.draw_no + "</b> · quay " + fmtTime(d.draw_at) + " · vé ghi lúc " + fmtTime(d.created_at)
-       + "<br>" + (d.result ? "Kết quả: " + balls(d.result) + (d.bonus != null ? " <span class='ball b'>" + String(d.bonus).padStart(2, "0") + "</span>" : "")
-                           : "<span class='note'>Chưa có kết quả</span>") + "</div><table>";
-    for (const t of d.tickets) {
-      const hit = t.hits == null ? "—" : t.hits + " số" + (t.bonus_hit ? " + ĐB" : "") + (t.prize_tier ? " · " + t.prize_tier : "");
-      h += "<tr title='" + esc(t.explanation_vi) + "'><td><b>" + t.code + "</b></td><td>" + balls(t.numbers) + "</td><td>" + hit + "</td></tr>";
-    }
-    h += "</table>";
-  }
-  const sc = j.stats.filter(s => s.scored);
-  if (sc.length) {
-    h += "<div style='margin-top:12px'><b>Thành tích live</b></div><table><tr><th>Phương pháp</th><th>Số vé đã chấm</th><th>TB số trúng</th>"
-       + "<th>Từ 3 số (thực tế / kỳ vọng)</th><th>Từ 4 số</th></tr>";
-    for (const s of sc) h += "<tr><td><b>" + s.code + "</b> " + esc(s.name_vi) + "</td><td>" + s.scored + "</td><td>" + s.mean_hits
-       + " <span class='note'>(ngẫu nhiên " + s.random_mean_hits + ")</span></td><td>" + s.goals["3"].actual + " / " + s.goals["3"].expected
-       + "</td><td>" + s.goals["4"].actual + " / " + s.goals["4"].expected + "</td></tr>";
-    h += "</table>";
-  }
-  h += "<div class='note'>" + esc(j.note_vi) + "</div>";
-  $("#live").innerHTML = h;
-}
-
-const HST = {proposed: "đề xuất", testing: "đang kiểm", rejected: "bác bỏ", supported_on_validation: "đạt validation",
-             confirmed_on_test: "XÁC NHẬN"};
-async function loadLab() {
-  const g = game;
-  const {ok, j} = await getJSON("/api/research?game=" + g);
-  if (g !== game) return;
-  if (!ok) { $("#lab").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
-  if (!j.ready || !j.n_tested) { $("#lab").textContent = "Chưa có giả thuyết nào. Vòng đầu chạy ở lần thu thập kế tiếp."; return; }
-  let h = "<div style='margin-top:6px'>" + GN[g] + ": đã kiểm <b>" + j.n_tested + "</b> giả thuyết, xác nhận <b>" + j.n_confirmed
-        + "</b>, thất bại " + j.n_failed + ".</div><div class='scroll'><table><tr><th>Giả thuyết</th><th>Kết quả</th><th>Trạng thái</th></tr>";
+  if (bt.ok && bt.j.learn_weights) h += "<div style='margin-top:6px'><b>Trọng số tự học M8</b>: " + Object.entries(bt.j.learn_weights).map(([c, w]) => c + " " + (w * 100).toFixed(1) + "%").join(" · ") + "</div>";
+  if (!j.ready || !j.n_tested) { $("#lab").innerHTML = h + "<div>Chưa có giả thuyết.</div>"; return; }
+  h += "<div style='margin-top:6px'>Đã kiểm <b>" + j.n_tested + "</b> giả thuyết, xác nhận <b>" + j.n_confirmed + "</b>, thất bại " + j.n_failed + ".</div><div class='scroll'><table><tr><th>Giả thuyết</th><th>Kết quả</th><th>Trạng thái</th></tr>";
   for (const r of j.hypotheses) {
-    const cls = r.status === "confirmed_on_test" ? "ok" : r.status === "rejected" ? "bad" : "";
-    h += "<tr title='" + esc(r.principle_vi) + "'><td>" + esc(r.title_vi) + "</td><td>" + esc(r.result_summary_vi || "") + "</td><td class='" + cls + "'>"
-       + (HST[r.status] || r.status) + "<br><span class='note'>" + esc(r.status_note_vi || "") + "</span></td></tr>";
+    const c = r.status === "confirmed_on_test" ? "ok" : r.status === "rejected" ? "bad" : "";
+    h += "<tr title='" + esc(r.principle_vi) + "'><td>" + esc(r.title_vi) + "</td><td>" + esc(r.result_summary_vi || "") + "</td><td class='" + c + "'>" + (HST[r.status] || r.status) + "<br><span class='note'>" + esc(r.status_note_vi || "") + "</span></td></tr>";
   }
   $("#lab").innerHTML = h + "</table></div><div class='note'>" + esc(j.note_vi) + "</div>";
 }
 
+// ---------------------------------------------------------------- 9. Kho kiến thức
 const SRC = {official: "chính thức", paper: "bài báo khoa học", article: "bài viết", internal: "thí nghiệm nội bộ"};
-async function loadKB(q) {
-  const {ok, j} = await getJSON("/api/knowledge?q=" + encodeURIComponent(q || ""));
-  if (!ok) { $("#kb").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
-  if (!j.ready) { $("#kb").textContent = "Chưa có dữ liệu."; return; }
+async function pKB(q) {
+  q = typeof q === "string" ? q : "";
+  setMain(card("Kho kiến thức", "<div class='row' style='margin-top:8px'><input id='kq' class='q' placeholder='Tìm: Benjamini, số lạnh, Power…' value='" + esc(q) + "'><button id='ks' class='sec'>Tìm</button></div><div id='kb' class='note'>Đang tải…</div>"));
+  $("#ks").onclick = () => pKB($("#kq").value);
+  $("#kq").onkeydown = e => { if (e.key === "Enter") pKB($("#kq").value); };
+  const {ok, j} = await api("/api/knowledge?q=" + encodeURIComponent(q));
+  if (!ok) { $("#kb").innerHTML = err(j); return; }
   let h = "<div style='margin-top:6px'>" + j.total + " tài liệu" + (j.q ? " · kết quả cho «" + esc(j.q) + "»: " + j.docs.length : "") + "</div><table>";
   for (const d of j.docs) {
     const t = d.url ? "<a href='" + esc(d.url) + "' target='_blank' rel='noopener'>" + esc(d.title) + "</a>" : esc(d.title);
-    h += "<tr><td><b>" + t + "</b><br><span class='note'>" + (SRC[d.source_type] || d.source_type) + " · độ tin cậy " + d.authority_score
-       + "/5</span><br>" + esc(d.summary_vi) + "</td></tr>";
+    h += "<tr><td><b>" + t + "</b><br><span class='note'>" + (SRC[d.source_type] || d.source_type) + " · độ tin cậy " + d.authority_score + "/5</span><br>" + esc(d.summary_vi) + "</td></tr>";
   }
   $("#kb").innerHTML = h + "</table>";
 }
-const JOBN = {ingest: "Thu thập", live: "Vé live", research: "Giả thuyết", report: "Báo cáo", backup: "Sao lưu"};
-async function loadAuto() {
-  const {ok, j} = await getJSON("/api/automation");
-  if (!ok) { $("#auto").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
-  if (!j.ready) { $("#auto").textContent = "Chưa có dữ liệu."; return; }
-  let h = "<div style='margin-top:6px'>" + esc(j.schedule_vi) + "</div><div class='chips' style='margin-top:6px'>Lần thành công gần nhất: "
-        + Object.entries(j.last_ok).map(([n, t]) => "<span><b>" + (JOBN[n] || n) + "</b> " + fmtTime(t) + "</span>").join("") + "</div>";
-  h += "<details><summary>Nhật ký tác vụ (" + j.jobs.length + " gần nhất)</summary><table><tr><th>Tác vụ</th><th>Lúc</th><th>Kết quả</th></tr>";
-  for (const r of j.jobs) {
-    const cls = r.status === "failed" ? "bad" : r.status === "success" ? "ok" : "";
-    h += "<tr title='" + esc(r.summary_vi) + "'><td>" + (JOBN[r.job_name] || esc(r.job_name)) + " <span class='note'>(" + esc(r.trigger) + ")</span></td><td>"
-       + fmtTime(r.started_at) + "</td><td class='" + cls + "'>" + (RUN[r.status] || r.status) + "</td></tr>";
+
+// ---------------------------------------------------------------- 10. Nguồn
+async function pSources() {
+  setMain(card("Nguồn dữ liệu và trạng thái kiểm chứng", "<div id='src' class='note'>Đang tải…</div>"));
+  const {ok, j} = await api("/api/status");
+  if (!ok) { $("#src").innerHTML = err(j); return; }
+  let h = "";
+  for (const g of Object.keys(GN)) {
+    h += "<div class='chips' style='margin-top:6px'><b>" + GN[g] + "</b>: ";
+    for (const [k, v] of Object.entries(j.counts[g] || {})) h += "<span><span class='st " + k.replace(" ", "-") + "'>" + k + "</span> " + v + "</span>";
+    h += "</div>";
   }
-  h += "</table></details><div style='margin-top:10px'><b>Sao lưu</b></div><table>";
-  for (const b of j.backups.slice(0, 5)) {
-    h += "<tr><td>#" + b.id + " · " + fmtTime(b.created_at) + " · " + Math.round(b.size_bytes / 1024) + " KB</td><td class='"
-       + (b.restore_ok ? "ok" : "bad") + "'>" + (b.restore_ok ? "khôi phục ĐẠT" : "khôi phục KHÔNG ĐẠT") + "<br><span class='note'>" + esc(b.details_vi) + "</span></td></tr>";
-  }
-  if (!j.backups.length) h += "<tr><td>Chưa có bản sao lưu.</td></tr>";
-  h += "</table><div style='margin-top:10px'><b>Báo cáo</b></div>";
-  for (const r of j.reports) {
-    h += "<details><summary>" + (r.kind === "weekly" ? "Báo cáo tuần" : "Sau kỳ " + (GN[r.game] || "") + " " + String(r.draw_no).padStart(5, "0"))
-       + " · " + fmtTime(r.created_at) + "</summary><pre>" + esc(r.content_vi) + "</pre></details>";
-  }
-  if (!j.reports.length) h += "<div class='note'>Chưa có báo cáo.</div>";
-  $("#auto").innerHTML = h;
+  h += "<table><tr><td><span class='st VERIFIED'>VERIFIED</span></td><td>Nguồn chính thức vietlott.vn khớp với ít nhất một kho lưu trữ độc lập.</td></tr>"
+    + "<tr><td><span class='st CROSS-CHECKED'>CROSS-CHECKED</span></td><td>Ít nhất hai kho lưu trữ độc lập khớp nhau, chưa có xác nhận trực tiếp từ nguồn chính thức.</td></tr>"
+    + "<tr><td><span class='st NOT-PROVEN'>NOT PROVEN</span></td><td>Chỉ một nhóm nguồn gốc; chưa dùng trong tính toán.</td></tr>"
+    + "<tr><td><span class='st CONFLICT'>CONFLICT</span></td><td>Các nguồn mâu thuẫn; kỳ này bị loại khỏi mọi tính toán.</td></tr>"
+    + "<tr><td><span class='st PENDING'>PENDING</span></td><td>Theo lịch đã quay nhưng chưa nguồn nào công bố kết quả.</td></tr></table>";
+  h += "<div class='warn'>vietlott.vn chặn máy chủ đặt ngoài Việt Nam (HTTP 403), nên hiện tại các kỳ chỉ đạt CROSS-CHECKED.</div>";
+  if (j.runs.length) h += "<details open><summary>Báo cáo thu thập gần nhất · " + fmtTime(j.runs[0].finished_at) + "</summary><pre>" + esc(j.runs[0].summary_vi) + "</pre></details>";
+  $("#src").innerHTML = h;
 }
 
-$("#ks").onclick = () => loadKB($("#kq").value);
-$("#kq").onkeydown = e => { if (e.key === "Enter") loadKB($("#kq").value); };
+// ---------------------------------------------------------------- 11. Biểu đồ
+function bars(rows, ref, fmt, title) {
+  const W = 640, rowH = 26, H = rows.length * rowH + 30, max = Math.max(ref, ...rows.map(r => r.v)) * 1.15, x = v => 90 + v / max * (W - 160);
+  let s = "<svg viewBox='0 0 " + W + " " + H + "' width='100%' style='max-width:" + W + "px'><text x='0' y='14' font-size='13' font-weight='600'>" + esc(title) + "</text>";
+  rows.forEach((r, i) => {
+    const y = 24 + i * rowH;
+    s += "<text x='0' y='" + (y + 15) + "' font-size='12'>" + esc(r.label) + "</text><rect x='90' y='" + (y + 3) + "' width='" + Math.max(1, x(r.v) - 90) + "' height='16' rx='4' fill='#818cf8'/>"
+       + "<text x='" + (x(r.v) + 4) + "' y='" + (y + 15) + "' font-size='11' fill='#475467'>" + fmt(r.v) + "</text>";
+  });
+  s += "<line x1='" + x(ref) + "' x2='" + x(ref) + "' y1='22' y2='" + (H - 4) + "' stroke='#dc2626' stroke-dasharray='4 3'/><text x='" + (x(ref) + 3) + "' y='" + (H - 6) + "' font-size='11' fill='#dc2626'>ngẫu nhiên " + fmt(ref) + "</text></svg>";
+  return s;
+}
+async function pCharts() {
+  setMain(card("Biểu đồ hiệu quả", gameTabs(pCharts) + "<div id='ch' class='note'>Đang tính…</div>", "Đường đỏ: mức kỳ vọng của vé ngẫu nhiên. Thanh dài hơn chưa chắc là tốt hơn: xem kết luận thống kê ở mục 7."));
+  const {ok, j} = await api("/api/backtest?game=" + game);
+  if (!ok) { $("#ch").innerHTML = err(j); return; }
+  if (!j.methods) { $("#ch").textContent = "Chưa có dữ liệu."; return; }
+  const ms = j.methods;
+  let h = bars(ms.map(m => ({label: m.code, v: m.mean_hits})), ms[0].random_mean_hits, v => v.toFixed(3), "Số trúng trung bình mỗi vé (" + nf(ms[0].draws) + " kỳ)");
+  h += bars(ms.map(m => ({label: m.code, v: m.goals["3"].actual_rate})), ms[0].goals["3"].random_rate, v => (v * 100).toFixed(2) + "%", "Tỷ lệ vé đạt từ 3 số");
+  h += bars(ms.map(m => ({label: m.code, v: m.goals["4"].actual_rate})), ms[0].goals["4"].random_rate, v => (v * 100).toFixed(3) + "%", "Tỷ lệ vé đạt từ 4 số");
+  $("#ch").innerHTML = h;
+}
 
-document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
-  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
-  game = b.dataset.g; loadDraws(); loadBacktest().then(loadLive); loadLab();
-});
+// ---------------------------------------------------------------- 12. Tự động hóa
+async function pAutoSettings() {
+  setMain(card("Cài đặt tự động hóa", "<div id='as' class='note'>Đang tải…</div>"));
+  const {ok, j} = await api("/api/automation");
+  if (!ok) { $("#as").innerHTML = err(j); return; }
+  let h = "<div style='margin-top:6px'>" + esc(j.schedule_vi) + "</div><table><tr><th>Lịch</th><th>Giờ Việt Nam</th><th>Việc</th></tr>"
+    + "<tr><td>Vercel Cron /api/cron</td><td>hằng ngày ~19:45</td><td>thu thập sau giờ quay 18:00, chấm vé, ghi vé kỳ tới, giả thuyết, báo cáo</td></tr>"
+    + "<tr><td>Vercel Cron /api/cron-morning</td><td>hằng ngày ~07:00</td><td>thu thập lại kết quả công bố muộn, các bước như trên</td></tr>"
+    + "<tr><td>Sao lưu + thử khôi phục</td><td>mỗi ngày một lần (cách nhau ≥ 20 giờ)</td><td>trong lần chạy đầu tiên của ngày</td></tr>"
+    + "<tr><td>Báo cáo tuần</td><td>mỗi 7 ngày</td><td>tóm tắt kỳ, vé live, giả thuyết, tác vụ, sao lưu</td></tr>"
+    + "<tr><td>Chạy tay</td><td>bất kỳ lúc nào, cách lần trước ≥ 10 phút</td><td>nút bên dưới</td></tr></table>"
+    + "<div class='note'>Không có thông báo (theo quyết định 16.10): trang tự cập nhật sau mỗi lần chạy. Gói Vercel miễn phí có thể lệch giờ chạy trong phạm vi một giờ.</div>"
+    + "<div class='row' style='margin-top:10px'><button id='run'>Chạy thu thập ngay</button></div>";
+  $("#as").innerHTML = h;
+  $("#run").onclick = async () => {
+    const b = $("#run"); b.disabled = true; b.textContent = "Đang chạy… (tới 5 phút)";
+    const {ok, j} = await api("/api/cron?manual=1", true);
+    b.disabled = false; b.textContent = "Chạy thu thập ngay";
+    for (const k in cache) delete cache[k];
+    alert(ok ? [j.live_vi, j.research_vi, j.report_vi, j.backup_vi].filter(Boolean).join("\n") : (j.error_vi || "Lỗi"));
+  };
+}
 
-$("#run").onclick = async () => {
-  const b = $("#run"); b.disabled = true; b.textContent = "Đang thu thập… (tới 5 phút)";
-  const {ok, j} = await getJSON("/api/cron?manual=1");
-  b.disabled = false; b.textContent = "Chạy thu thập ngay";
-  if (!ok) alert(j.error_vi || "Lỗi");
-  if (ok && j.live_vi) alert([j.live_vi, j.research_vi, j.report_vi, j.backup_vi].filter(Boolean).join("\n"));
-  await loadStatus(); await loadDraws(); await loadBacktest(); await loadLive(); await loadLab(); await loadKB(""); await loadAuto();
-};
+// ---------------------------------------------------------------- 13. Nhật ký
+async function pLog() {
+  setMain(card("Nhật ký hoạt động và lỗi", "<div id='lg' class='note'>Đang tải…</div>", "20 tác vụ gần nhất (job_runs, chỉ ghi thêm). Bấm vào dòng để xem chi tiết."));
+  const {ok, j} = await api("/api/automation");
+  if (!ok) { $("#lg").innerHTML = err(j); return; }
+  let h = "";
+  for (const r of j.jobs) {
+    const c = r.status === "failed" ? "bad" : r.status === "success" ? "ok" : "wait";
+    h += "<details><summary>#" + r.id + " · " + (JOBN[r.job_name] || esc(r.job_name)) + " · " + fmtTime(r.started_at) + " · " + (r.trigger === "schedule" ? "theo lịch" : r.trigger === "manual" ? "chạy tay" : esc(r.trigger))
+       + " · <span class='" + c + "'>" + (RUN[r.status] || r.status) + "</span></summary><pre>" + esc(r.summary_vi) + "</pre></details>";
+  }
+  h += "<div style='margin-top:12px'><b>Báo cáo</b></div>";
+  for (const r of j.reports) h += "<details><summary>" + (r.kind === "weekly" ? "Báo cáo tuần" : "Sau kỳ " + (GN[r.game] || "") + " " + String(r.draw_no).padStart(5, "0")) + " · " + fmtTime(r.created_at) + "</summary><pre>" + esc(r.content_vi) + "</pre></details>";
+  if (!j.reports.length) h += "<div class='note'>Chưa có báo cáo.</div>";
+  $("#lg").innerHTML = h;
+}
 
-loadStatus(); loadDraws(); loadBacktest().then(loadLive); loadLab(); loadKB(""); loadAuto();
+// ---------------------------------------------------------------- 14. Sao lưu
+async function pBackup() {
+  setMain(card("Sao lưu và xuất dữ liệu", "<div class='row' style='margin-top:8px'><a class='btn' href='/api/backup'>Tải bản sao lưu đầy đủ (.json.gz)</a></div>"
+    + "<div class='note'>Tệp chứa toàn bộ bảng lịch sử và băm SHA-256 của từng bảng, nên có thể kiểm tra lại bất cứ lúc nào. Nên tải về và cất ở nơi khác định kỳ.</div><div id='bk' class='note'>Đang tải…</div>")
+    + card("Xuất dữ liệu", "<div class='row' style='margin-top:8px'><a class='btn sec' href='/api/export?kind=draws&format=csv'>Kết quả (CSV)</a><a class='btn sec' href='/api/export?kind=draws&format=json'>Kết quả (JSON)</a>"
+    + "<a class='btn sec' href='/api/export?kind=history&format=csv'>Lịch sử phiên bản</a><a class='btn sec' href='/api/export?kind=observations&format=csv'>Quan sát từ các nguồn</a><a class='btn sec' href='/api/export?kind=conflicts&format=csv'>Xung đột</a></div>",
+    "Toàn bộ lịch sử chỉ được ghi thêm, không bao giờ sửa hay xóa."));
+  const {ok, j} = await api("/api/automation");
+  if (!ok) { $("#bk").innerHTML = err(j); return; }
+  let h = "<table><tr><th>Bản</th><th>Thử khôi phục</th></tr>";
+  for (const b of j.backups) h += "<tr><td>#" + b.id + " · " + fmtTime(b.created_at) + " · " + Math.round(b.size_bytes / 1024) + " KB<br><span class='note'>sha256 " + esc(b.sha256.slice(0, 16)) + "…</span></td><td class='" + (b.restore_ok ? "ok" : "bad") + "'>"
+    + (b.restore_ok ? "ĐẠT" : "KHÔNG ĐẠT") + "<br><span class='note'>" + esc(b.details_vi) + "</span></td></tr>";
+  if (!j.backups.length) h += "<tr><td colspan='2'>Chưa có bản sao lưu.</td></tr>";
+  $("#bk").innerHTML = h + "</table>";
+}
+
+// ---------------------------------------------------------------- định tuyến
+$("#nav").innerHTML = PAGES.map(([id, name]) => "<a href='#" + id + "' data-id='" + id + "'>" + name + "</a>").join("");
+function go() {
+  const id = location.hash.slice(1) || "tong-quan", p = PAGES.find(x => x[0] === id) || PAGES[0];
+  document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.id === p[0]));
+  window.scrollTo(0, 0);
+  p[2]();
+}
+window.addEventListener("hashchange", go);
+go();
 </script>
 </body>
 </html>
