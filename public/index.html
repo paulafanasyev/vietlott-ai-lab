@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vietlott AI Lab</title>
+<style>
+  :root { --bg:#f6f7fb; --card:#fff; --ink:#1d2433; --mute:#667085; --line:#e4e7ec; --acc:#4f46e5; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:20px 16px 8px; max-width:960px; margin:auto; }
+  h1 { margin:0; font-size:22px; }
+  .note { color:var(--mute); font-size:13px; margin-top:4px; }
+  main { max-width:960px; margin:auto; padding:8px 16px 40px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:14px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  button, a.btn { border:0; border-radius:10px; padding:9px 14px; font:inherit; cursor:pointer; text-decoration:none;
+                  background:var(--acc); color:#fff; display:inline-block; }
+  a.btn.sec, button.sec { background:#eef0f6; color:var(--ink); }
+  button:disabled { opacity:.6; cursor:wait; }
+  .tabs button { background:#eef0f6; color:var(--ink); }
+  .tabs button.on { background:var(--acc); color:#fff; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
+  th, td { text-align:left; padding:7px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--mute); font-weight:600; font-size:12px; }
+  .ball { display:inline-block; min-width:26px; padding:2px 0; margin:1px; border-radius:13px; text-align:center;
+          background:#eef0f6; font-weight:600; font-variant-numeric:tabular-nums; }
+  .ball.b { background:#fde68a; }
+  .st { font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+  .VERIFIED { background:#dcfce7; color:#166534; } .CROSS-CHECKED { background:#dbeafe; color:#1e40af; }
+  .NOT-PROVEN { background:#f3f4f6; color:#374151; } .CONFLICT { background:#fee2e2; color:#991b1b; }
+  .PENDING { background:#fef9c3; color:#854d0e; }
+  .chips span { margin-right:10px; }
+  pre { white-space:pre-wrap; font-size:12px; background:#f8fafc; border-radius:8px; padding:10px; max-height:260px; overflow:auto; }
+  .ok { color:#166534; } .bad { color:#991b1b; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Vietlott AI Lab</h1>
+  <div class="note">Nghiên cứu Mega 6/45 và Power 6/55. Xổ số là ngẫu nhiên: hệ thống chỉ đo lường, không hứa hẹn tăng cơ hội trúng thưởng.</div>
+</header>
+<main>
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <strong>Tình trạng dữ liệu</strong>
+      <button id="run">Chạy thu thập ngay</button>
+    </div>
+    <div id="status" class="note">Đang tải…</div>
+  </section>
+
+  <section class="card">
+    <div class="row tabs">
+      <button data-g="mega645" class="on">Mega 6/45</button>
+      <button data-g="power655">Power 6/55</button>
+    </div>
+    <div id="draws" class="note">Đang tải…</div>
+  </section>
+
+  <section class="card">
+    <strong>Xuất dữ liệu</strong>
+    <div class="note">Toàn bộ lịch sử chỉ được ghi thêm, không bao giờ sửa hay xóa.</div>
+    <div class="row" style="margin-top:8px">
+      <a class="btn sec" href="/api/export?kind=draws&format=csv">Kết quả (CSV)</a>
+      <a class="btn sec" href="/api/export?kind=draws&format=json">Kết quả (JSON)</a>
+      <a class="btn sec" href="/api/export?kind=history&format=csv">Lịch sử phiên bản</a>
+      <a class="btn sec" href="/api/export?kind=observations&format=csv">Quan sát từ các nguồn</a>
+      <a class="btn sec" href="/api/export?kind=conflicts&format=csv">Xung đột</a>
+    </div>
+  </section>
+
+  <section class="card">
+    <strong>Ý nghĩa trạng thái</strong>
+    <table>
+      <tr><td><span class="st VERIFIED">VERIFIED</span></td><td>Nguồn chính thức vietlott.vn khớp với ít nhất một kho lưu trữ độc lập.</td></tr>
+      <tr><td><span class="st CROSS-CHECKED">CROSS-CHECKED</span></td><td>Ít nhất hai kho lưu trữ độc lập khớp nhau, chưa có xác nhận trực tiếp từ nguồn chính thức.</td></tr>
+      <tr><td><span class="st NOT-PROVEN">NOT PROVEN</span></td><td>Chỉ một nhóm nguồn gốc; chưa đủ để dùng trong tính toán.</td></tr>
+      <tr><td><span class="st CONFLICT">CONFLICT</span></td><td>Các nguồn mâu thuẫn; kỳ này bị loại khỏi mọi tính toán.</td></tr>
+      <tr><td><span class="st PENDING">PENDING</span></td><td>Theo lịch đã quay nhưng chưa nguồn nào công bố kết quả.</td></tr>
+    </table>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const GN = {mega645: "Mega 6/45", power655: "Power 6/55"};
+const RUN = {success: "thành công", partial: "một phần", failed: "lỗi", skipped: "bỏ qua"};
+let game = "mega645";
+
+function fmtTime(t) { return t ? new Date(t).toLocaleString("vi-VN", {timeZone: "Asia/Ho_Chi_Minh"}) : "—"; }
+
+async function getJSON(url, opt) {
+  const r = await fetch(url, opt);
+  const j = await r.json().catch(() => ({error_vi: "Phản hồi không hợp lệ (" + r.status + ")"}));
+  return {ok: r.ok, j};
+}
+
+async function loadStatus() {
+  const {ok, j} = await getJSON("/api/status");
+  if (!ok) { $("#status").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
+  if (!j.ready) { $("#status").textContent = j.message_vi; return; }
+  let h = "";
+  for (const g of ["mega645", "power655"]) {
+    const c = j.counts[g] || {}, l = j.latest[g];
+    h += "<div class='chips'><b>" + GN[g] + "</b>: " + (l ? "kỳ mới nhất " + l.draw_no + " (" + esc(l.draw_date) + ")" : "chưa có") + "<br>";
+    for (const [k, v] of Object.entries(c)) h += "<span><span class='st " + k.replace(" ", "-") + "'>" + k + "</span> " + v + "</span>";
+    h += "</div>";
+  }
+  const it = j.integrity;
+  h += "<div style='margin-top:8px'>Toàn vẹn: " + (it.ok ? "<span class='ok'>đúng</span>" : "<span class='bad'>PHÁT HIỆN SAI LỆCH</span>")
+     + (it.checkpoint_id ? " · điểm kiểm tra #" + it.checkpoint_id : "") + "</div>";
+  if (j.runs.length) {
+    const r = j.runs[0];
+    h += "<div>Lần chạy gần nhất: " + fmtTime(r.finished_at) + " · " + (RUN[r.status] || r.status) + "</div>";
+    h += "<details><summary>Báo cáo</summary><pre>" + esc(r.summary_vi) + "</pre></details>";
+  }
+  $("#status").innerHTML = h;
+}
+
+async function loadDraws() {
+  $("#draws").textContent = "Đang tải…";
+  const {ok, j} = await getJSON("/api/draws?game=" + game + "&limit=60");
+  if (!ok) { $("#draws").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
+  if (!j.ready || !j.rows.length) { $("#draws").textContent = "Chưa có dữ liệu."; return; }
+  let h = "<table><tr><th>Kỳ</th><th>Ngày</th><th>Bộ số</th><th>Trạng thái</th></tr>";
+  for (const r of j.rows) {
+    const balls = (r.main_numbers || []).map(n => "<span class='ball'>" + String(n).padStart(2, "0") + "</span>").join("")
+      + (r.bonus_number != null ? " <span class='ball b'>" + String(r.bonus_number).padStart(2, "0") + "</span>" : "");
+    h += "<tr title='" + esc(r.reason_vi) + "'><td>" + r.draw_no + "</td><td>" + esc(r.draw_date || "") + "</td><td>"
+       + (balls || "—") + "</td><td><span class='st " + r.status.replace(" ", "-") + "'>" + r.status + "</span></td></tr>";
+  }
+  $("#draws").innerHTML = h + "</table>";
+}
+
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+  game = b.dataset.g; loadDraws();
+});
+
+$("#run").onclick = async () => {
+  const b = $("#run"); b.disabled = true; b.textContent = "Đang thu thập… (tới 5 phút)";
+  const {ok, j} = await getJSON("/api/cron?manual=1");
+  b.disabled = false; b.textContent = "Chạy thu thập ngay";
+  if (!ok) alert(j.error_vi || "Lỗi");
+  await loadStatus(); await loadDraws();
+};
+
+loadStatus(); loadDraws();
+</script>
+</body>
+</html>
