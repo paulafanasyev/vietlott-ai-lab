@@ -93,6 +93,14 @@
   </section>
 
   <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <strong>Tự động hóa, báo cáo và sao lưu</strong>
+      <a class="btn sec" href="/api/backup">Tải bản sao lưu đầy đủ</a>
+    </div>
+    <div id="auto" class="note">Đang tải…</div>
+  </section>
+
+  <section class="card">
     <strong>Xuất dữ liệu</strong>
     <div class="note">Toàn bộ lịch sử chỉ được ghi thêm, không bao giờ sửa hay xóa.</div>
     <div class="row" style="margin-top:8px">
@@ -281,6 +289,34 @@ async function loadKB(q) {
   }
   $("#kb").innerHTML = h + "</table>";
 }
+const JOBN = {ingest: "Thu thập", live: "Vé live", research: "Giả thuyết", report: "Báo cáo", backup: "Sao lưu"};
+async function loadAuto() {
+  const {ok, j} = await getJSON("/api/automation");
+  if (!ok) { $("#auto").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
+  if (!j.ready) { $("#auto").textContent = "Chưa có dữ liệu."; return; }
+  let h = "<div style='margin-top:6px'>" + esc(j.schedule_vi) + "</div><div class='chips' style='margin-top:6px'>Lần thành công gần nhất: "
+        + Object.entries(j.last_ok).map(([n, t]) => "<span><b>" + (JOBN[n] || n) + "</b> " + fmtTime(t) + "</span>").join("") + "</div>";
+  h += "<details><summary>Nhật ký tác vụ (" + j.jobs.length + " gần nhất)</summary><table><tr><th>Tác vụ</th><th>Lúc</th><th>Kết quả</th></tr>";
+  for (const r of j.jobs) {
+    const cls = r.status === "failed" ? "bad" : r.status === "success" ? "ok" : "";
+    h += "<tr title='" + esc(r.summary_vi) + "'><td>" + (JOBN[r.job_name] || esc(r.job_name)) + " <span class='note'>(" + esc(r.trigger) + ")</span></td><td>"
+       + fmtTime(r.started_at) + "</td><td class='" + cls + "'>" + (RUN[r.status] || r.status) + "</td></tr>";
+  }
+  h += "</table></details><div style='margin-top:10px'><b>Sao lưu</b></div><table>";
+  for (const b of j.backups.slice(0, 5)) {
+    h += "<tr><td>#" + b.id + " · " + fmtTime(b.created_at) + " · " + Math.round(b.size_bytes / 1024) + " KB</td><td class='"
+       + (b.restore_ok ? "ok" : "bad") + "'>" + (b.restore_ok ? "khôi phục ĐẠT" : "khôi phục KHÔNG ĐẠT") + "<br><span class='note'>" + esc(b.details_vi) + "</span></td></tr>";
+  }
+  if (!j.backups.length) h += "<tr><td>Chưa có bản sao lưu.</td></tr>";
+  h += "</table><div style='margin-top:10px'><b>Báo cáo</b></div>";
+  for (const r of j.reports) {
+    h += "<details><summary>" + (r.kind === "weekly" ? "Báo cáo tuần" : "Sau kỳ " + (GN[r.game] || "") + " " + String(r.draw_no).padStart(5, "0"))
+       + " · " + fmtTime(r.created_at) + "</summary><pre>" + esc(r.content_vi) + "</pre></details>";
+  }
+  if (!j.reports.length) h += "<div class='note'>Chưa có báo cáo.</div>";
+  $("#auto").innerHTML = h;
+}
+
 $("#ks").onclick = () => loadKB($("#kq").value);
 $("#kq").onkeydown = e => { if (e.key === "Enter") loadKB($("#kq").value); };
 
@@ -294,11 +330,11 @@ $("#run").onclick = async () => {
   const {ok, j} = await getJSON("/api/cron?manual=1");
   b.disabled = false; b.textContent = "Chạy thu thập ngay";
   if (!ok) alert(j.error_vi || "Lỗi");
-  if (ok && j.live_vi) alert(j.live_vi + "\n" + (j.research_vi || ""));
-  await loadStatus(); await loadDraws(); await loadBacktest(); await loadLive(); await loadLab(); await loadKB("");
+  if (ok && j.live_vi) alert([j.live_vi, j.research_vi, j.report_vi, j.backup_vi].filter(Boolean).join("\n"));
+  await loadStatus(); await loadDraws(); await loadBacktest(); await loadLive(); await loadLab(); await loadKB(""); await loadAuto();
 };
 
-loadStatus(); loadDraws(); loadBacktest().then(loadLive); loadLab(); loadKB("");
+loadStatus(); loadDraws(); loadBacktest().then(loadLive); loadLab(); loadKB(""); loadAuto();
 </script>
 </body>
 </html>
