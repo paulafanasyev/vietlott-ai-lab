@@ -170,14 +170,14 @@ def run(conn, audit, *, trigger: str = "manual", games: list[str] | None = None,
     if not 1 <= official_pages <= 20:
         raise ValueError("official_pages phải trong khoảng 1..20")
     store = Store(conn, audit)
-    runner = os.environ.get("GITHUB_RUN_ID", "local")
+    runner = os.environ.get("GITHUB_RUN_ID") or os.environ.get("VERCEL_DEPLOYMENT_ID") or "local"
     started = utc_now()
-    job_id = store.new_job_id()
     if not store.try_lock(LOCK):
-        store.finish_job(job_id, "ingest", trigger, started, utc_now(), "skipped",
-                         "Bỏ qua: một lần thu thập khác đang chạy.", {}, runner)
+        # Không ghi job_runs: lần chạy đang giữ khóa đã được cấp số id từ trước và chỉ ghi dòng của mình lúc kết thúc;
+        # ghi thêm một dòng có id lớn hơn sẽ làm điểm kiểm tra coi dòng đó là “chèn vào quá khứ”.
         print("Bỏ qua: một lần thu thập khác đang chạy.")
         return 0
+    job_id = store.new_job_id()
     http = http or Http()
     summaries: list[GameSummary] = []
     try:
