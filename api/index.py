@@ -5,6 +5,7 @@ Mọi văn bản trả cho người dùng bằng tiếng Việt. Một hàm duy 
   /api/status  — tình trạng CSDL, số kỳ theo trạng thái, các lần chạy gần nhất, kiểm tra toàn vẹn
   /api/draws   — kết quả hiện hành (?game=mega645|power655&limit=50)
   /api/export  — xuất dữ liệu (?kind=draws|history|observations|conflicts&format=csv|json&game=)
+  /api/backtest — kiểm định walk-forward các phương pháp so với ngẫu nhiên (?game=mega645|power655)
 """
 
 from __future__ import annotations
@@ -168,6 +169,34 @@ def export(kind: str, fmt: str, game: str | None) -> tuple[bytes, str, str]:
     return Store.to_json(cols, rows).encode("utf-8"), "application/json; charset=utf-8", name
 
 
+MAX_NUMBER = {"mega645": 45, "power655": 55}
+_BT_CACHE: dict = {}
+
+
+def backtest(game: str) -> dict:
+    """Chỉ dùng kỳ VERIFIED/CROSS-CHECKED (CONFLICT, NOT PROVEN, PENDING bị loại). Kết quả được lưu tạm theo
+    (trò chơi, kỳ cuối, số kỳ) nên chỉ tính lại khi có kỳ mới."""
+    from vlab.backtest import run_backtest
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            if not _ready(cur):
+                return {"ready": False}
+            cur.execute("""SELECT draw_no, main_numbers FROM draw_current
+                           WHERE game = %s AND status IN ('VERIFIED', 'CROSS-CHECKED') AND main_numbers IS NOT NULL
+                           ORDER BY draw_no""", (game,))
+            rows = [(int(n), tuple(int(x) for x in nums)) for n, nums in cur.fetchall()]
+    finally:
+        conn.close()
+    key = (rows[-1][0] if rows else 0, len(rows))
+    cached = _BT_CACHE.get(game)
+    if not cached or cached[0] != key:
+        res = run_backtest(game, MAX_NUMBER[game], rows)
+        res["computed_at"] = datetime.now(timezone.utc).isoformat()
+        cached = _BT_CACHE[game] = (key, res)
+    return {"ready": True, **cached[1]}
+
+
 # ---------------------------------------------------------------- định tuyến
 def health() -> dict:
     """Luôn trả 200: chẩn đoán từng bước (biến môi trường, thư viện, kết nối, lược đồ) mà không lộ bí mật."""
@@ -176,7 +205,7 @@ def health() -> dict:
                                          "POSTGRES_URL") if os.environ.get(k)],
                  "migrations_dir": (ROOT / "db" / "migrations").is_dir(),
                  "worker_dir": (ROOT / "worker" / "vlab").is_dir()}
-    for mod in ("psycopg", "requests", "bs4", "lxml", "vlab.store", "vlab.ingest"):
+    for mod in ("psycopg", "requests", "bs4", "lxml", "vlab.store", "vlab.ingest", "vlab.backtest"):
         try:
             __import__(mod)
             out[mod] = "ok"
@@ -223,6 +252,11 @@ def route(path: str, q: dict, environ) -> tuple[str, list, bytes]:
         except ValueError:
             limit = 50
         return "200 OK", JSON_HDR, _j(draws(game, limit))
+    if name == "backtest":
+        game = q.get("game", "mega645")
+        if game not in GAMES:
+            return "400 Bad Request", JSON_HDR, _j({"error_vi": f"Trò chơi không hợp lệ: {game}"})
+        return "200 OK", JSON_HDR, _j(backtest(game))
     if name == "export":
         kind, fmt, game = q.get("kind", "draws"), q.get("format", "csv"), q.get("game") or None
         if kind not in KINDS or fmt not in ("csv", "json") or (game and game not in GAMES):

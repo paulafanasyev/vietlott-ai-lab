@@ -33,6 +33,11 @@
   .chips span { margin-right:10px; }
   pre { white-space:pre-wrap; font-size:12px; background:#f8fafc; border-radius:8px; padding:10px; max-height:260px; overflow:auto; }
   .ok { color:#166534; } .bad { color:#991b1b; }
+  .scroll { overflow-x:auto; }
+  .goals { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin-top:10px; }
+  .goal { background:#f8fafc; border:1px solid var(--line); border-radius:10px; padding:10px; }
+  .goal b { font-size:18px; display:block; }
+  .warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:10px; margin-top:10px; font-size:13px; }
 </style>
 </head>
 <body>
@@ -55,6 +60,13 @@
       <button data-g="power655">Power 6/55</button>
     </div>
     <div id="draws" class="note">Đang tải…</div>
+  </section>
+
+  <section class="card">
+    <strong>Kiểm định phương pháp (walk-forward)</strong>
+    <div class="note">Với mỗi kỳ, mỗi phương pháp chỉ được nhìn các kỳ trước đó, rồi so vé của nó với kết quả thật.
+      Chỉ dùng các kỳ VERIFIED / CROSS-CHECKED.</div>
+    <div id="bt" class="note">Đang tải…</div>
   </section>
 
   <section class="card">
@@ -132,9 +144,52 @@ async function loadDraws() {
   $("#draws").innerHTML = h + "</table>";
 }
 
+const GOAL = {"6": "Độc đắc (6 số)", "5": "Từ 5 số", "4": "Từ 4 số", "3": "Từ 3 số"};
+const pct = p => (p * 100 < 0.01 ? (p * 100).toExponential(2) : (p * 100).toFixed(p * 100 < 1 ? 3 : 2)) + "%";
+const nf = n => Number(n).toLocaleString("vi-VN");
+const balls = a => a.map(n => "<span class='ball'>" + String(n).padStart(2, "0") + "</span>").join("");
+
+async function loadBacktest() {
+  $("#bt").textContent = "Đang tính… (lần đầu có thể mất vài giây)";
+  const g = game;
+  const {ok, j} = await getJSON("/api/backtest?game=" + g);
+  if (g !== game) return;
+  if (!ok) { $("#bt").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
+  if (!j.ready || !j.methods) { $("#bt").textContent = "Chưa có dữ liệu."; return; }
+  let h = "<div style='margin-top:6px'>" + GN[g] + ": " + nf(j.draws_used) + " kỳ (" + j.first_draw + "–" + j.last_draw
+        + "), " + j.warmup + " kỳ đầu chỉ để học → chấm điểm trên " + nf(j.methods[0].draws) + " kỳ.</div>";
+  h += "<div class='goals'>";
+  for (const k of ["6", "5", "4", "3"]) {
+    const o = j.goal_odds[k];
+    h += "<div class='goal'><span class='note'>" + (k === "6" ? "Độc đắc" : "Đúng " + k + " số") + " · 1 vé</span><b>1 trên "
+       + nf(o.one_in) + "</b><span class='note'>" + pct(o.p) + "</span></div>";
+  }
+  h += "</div><div class='scroll'><table><tr><th>Phương pháp</th><th>TB số trúng / vé</th>";
+  for (const k of ["3", "4", "5", "6"]) h += "<th>" + GOAL[k] + "<br>thực tế / kỳ vọng ngẫu nhiên</th>";
+  h += "<th>Kết luận</th></tr>";
+  for (const m of j.methods) {
+    const cls = m.verdict_vi.startsWith("TỐT") ? "ok" : m.verdict_vi.startsWith("KÉM") ? "bad" : "";
+    h += "<tr><td title='" + esc(m.description_vi) + "'><b>" + m.code + "</b> " + esc(m.name_vi) + "</td><td>"
+       + m.mean_hits.toFixed(3) + " <span class='note'>(ngẫu nhiên " + m.random_mean_hits.toFixed(3) + ")</span></td>";
+    for (const k of ["3", "4", "5", "6"]) {
+      const x = m.goals[k];
+      h += "<td>" + x.actual + " / " + x.expected + "<br><span class='note'>" + pct(x.actual_rate) + " vs " + pct(x.random_rate)
+         + " (1 trên " + nf(x.random_one_in) + ")</span></td>";
+    }
+    h += "<td class='" + cls + "'>" + esc(m.verdict_vi) + "<br><span class='note'>p = " + m.p_value + "</span></td></tr>";
+  }
+  h += "</table></div><div class='note'>Kiểm định z cho số trúng trung bình, hiệu chỉnh Bonferroni cho "
+     + j.bonferroni_tests + " phương pháp (α = " + j.alpha + "). «Tốt hơn» chỉ khi p &lt; " + (j.alpha / j.bonferroni_tests).toFixed(4) + ".</div>";
+  h += "<div style='margin-top:12px'><b>Vé của từng phương pháp cho kỳ " + j.next_draw_no + "</b></div><table>";
+  for (const t of j.next_tickets) h += "<tr><td><b>" + t.code + "</b> " + esc(t.name_vi) + "</td><td>" + balls(t.numbers) + "</td></tr>";
+  h += "</table><div class='warn'>" + esc(j.note_vi) + " Xác suất trúng độc đắc của mỗi vé vẫn là 1 trên "
+     + nf(j.goal_odds["6"].one_in) + ".</div>";
+  $("#bt").innerHTML = h;
+}
+
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
-  game = b.dataset.g; loadDraws();
+  game = b.dataset.g; loadDraws(); loadBacktest();
 });
 
 $("#run").onclick = async () => {
@@ -142,10 +197,10 @@ $("#run").onclick = async () => {
   const {ok, j} = await getJSON("/api/cron?manual=1");
   b.disabled = false; b.textContent = "Chạy thu thập ngay";
   if (!ok) alert(j.error_vi || "Lỗi");
-  await loadStatus(); await loadDraws();
+  await loadStatus(); await loadDraws(); await loadBacktest();
 };
 
-loadStatus(); loadDraws();
+loadStatus(); loadDraws(); loadBacktest();
 </script>
 </body>
 </html>
