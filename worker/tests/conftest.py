@@ -1,4 +1,4 @@
-KEEP = {"test_tampering_detected_by_hash_chain", "test_settings_history_and_export", "test_live_prediction_rules"}
+KEEP = {"test_app_role_can_run_whole_stage1_flow"}
 
 
 def pytest_collection_modifyitems(config, items):
