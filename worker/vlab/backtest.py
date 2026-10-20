@@ -1,7 +1,7 @@
 """Kiểm định walk-forward: với mỗi kỳ t, mọi phương pháp chỉ dùng các kỳ < t để chọn vé, rồi so với kỳ t.
 
 So sánh với xác suất lý thuyết của vé ngẫu nhiên (phân phối siêu bội) và với M0 thực nghiệm.
-Kiểm định z cho số trúng trung bình, hiệu chỉnh Bonferroni cho 7 phương pháp không ngẫu nhiên.
+Kiểm định z cho số trúng trung bình, hiệu chỉnh Bonferroni cho các phương pháp không ngẫu nhiên.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ import math
 from dataclasses import dataclass, field
 from math import comb
 
-from .methods import CODES, METHODS, State, all_tickets
+from .methods import CODES, METHODS, State, all_tickets, learn_weights
 
 WARMUP = 100  # số kỳ đầu chỉ dùng để học, không tính điểm
 ALPHA = 0.05
@@ -100,6 +100,7 @@ def run_backtest(game_code: str, max_number: int, draws: list[tuple[int, tuple[i
         "alpha": ALPHA, "bonferroni_tests": n_tests, "goal_odds": goal_odds(max_number),
         "methods": [results[c].as_dict(max_number, n_tests) for c in CODES],
         "next_draw_no": f"{next_no:05d}",
+        "learn_weights": {c: round(w, 4) for c, w in learn_weights(state).items()},
         "next_tickets": [{"code": c, "name_vi": next(m.name_vi for m in METHODS if m.code == c),
                           "numbers": list(tickets[c])} for c in CODES] if draws else [],
         "note_vi": ("Mỗi vé, dù chọn bằng phương pháp nào, đều có cùng xác suất trúng như vé ngẫu nhiên. "

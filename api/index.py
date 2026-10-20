@@ -6,6 +6,7 @@ Mọi văn bản trả cho người dùng bằng tiếng Việt. Một hàm duy 
   /api/draws   — kết quả hiện hành (?game=mega645|power655&limit=50)
   /api/export  — xuất dữ liệu (?kind=draws|history|observations|conflicts&format=csv|json&game=)
   /api/backtest — kiểm định walk-forward các phương pháp so với ngẫu nhiên (?game=mega645|power655)
+  /api/live    — dự đoán live (ghi trước giờ quay) và kết quả đối chiếu (?game=mega645|power655)
 """
 
 from __future__ import annotations
@@ -102,7 +103,19 @@ def do_ingest(trigger: str) -> dict:
             audit.close()
     finally:
         conn.close()
-    return {"ok": code == 0, "exit_code": code, "migrations_applied": applied, "summary_vi": buf.getvalue()}
+    # Giai đoạn 3: chấm điểm vé live và ghi dự đoán cho kỳ kế tiếp (giao dịch riêng; lỗi không làm hỏng thu thập).
+    try:
+        from vlab.live import run_live
+        live_conn = connect()
+        try:
+            live = run_live(live_conn, os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown"))
+        finally:
+            live_conn.close()
+        live_ok = True
+    except Exception as exc:
+        live, live_ok = f"Dự đoán: LỖI {type(exc).__name__}: {str(exc)[:400]}", False
+    return {"ok": code == 0 and live_ok, "exit_code": code, "migrations_applied": applied,
+            "summary_vi": buf.getvalue(), "live_vi": live}
 
 
 # ---------------------------------------------------------------- đọc dữ liệu
@@ -197,6 +210,18 @@ def backtest(game: str) -> dict:
     return {"ready": True, **cached[1]}
 
 
+def live(game: str) -> dict:
+    from vlab.live import live_report
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            if not _ready(cur):
+                return {"ready": False}
+        return live_report(conn, game)
+    finally:
+        conn.close()
+
+
 # ---------------------------------------------------------------- định tuyến
 def health() -> dict:
     """Luôn trả 200: chẩn đoán từng bước (biến môi trường, thư viện, kết nối, lược đồ) mà không lộ bí mật."""
@@ -205,7 +230,7 @@ def health() -> dict:
                                          "POSTGRES_URL") if os.environ.get(k)],
                  "migrations_dir": (ROOT / "db" / "migrations").is_dir(),
                  "worker_dir": (ROOT / "worker" / "vlab").is_dir()}
-    for mod in ("psycopg", "requests", "bs4", "lxml", "vlab.store", "vlab.ingest", "vlab.backtest"):
+    for mod in ("psycopg", "requests", "bs4", "lxml", "vlab.store", "vlab.ingest", "vlab.backtest", "vlab.live"):
         try:
             __import__(mod)
             out[mod] = "ok"
@@ -257,6 +282,11 @@ def route(path: str, q: dict, environ) -> tuple[str, list, bytes]:
         if game not in GAMES:
             return "400 Bad Request", JSON_HDR, _j({"error_vi": f"Trò chơi không hợp lệ: {game}"})
         return "200 OK", JSON_HDR, _j(backtest(game))
+    if name == "live":
+        game = q.get("game", "mega645")
+        if game not in GAMES:
+            return "400 Bad Request", JSON_HDR, _j({"error_vi": f"Trò chơi không hợp lệ: {game}"})
+        return "200 OK", JSON_HDR, _j(live(game))
     if name == "export":
         kind, fmt, game = q.get("kind", "draws"), q.get("format", "csv"), q.get("game") or None
         if kind not in KINDS or fmt not in ("csv", "json") or (game and game not in GAMES):

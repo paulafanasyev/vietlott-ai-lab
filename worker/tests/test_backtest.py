@@ -66,7 +66,8 @@ class Backtest(unittest.TestCase):
             self.assertLess(abs(m["mean_hits"] - 0.8), 0.15)
         better = [m for m in res["methods"] if m["verdict_vi"].startswith("TỐT HƠN")]
         self.assertEqual(better, [])  # dữ liệu ngẫu nhiên: không phương pháp nào được \"thắng\"
-        self.assertEqual(len(res["next_tickets"]), 8)
+        self.assertEqual(len(res["next_tickets"]), 9)
+        self.assertAlmostEqual(sum(res["learn_weights"].values()), 1.0, places=3)
 
     def test_detects_real_bias(self):
         """Nếu dữ liệu thiên lệch thật (số 1–6 hay về), M1 phải phát hiện được — kiểm định có độ nhạy."""
@@ -80,3 +81,8 @@ class Backtest(unittest.TestCase):
         res = run_backtest("mega645", 45, draws)
         m1 = next(m for m in res["methods"] if m["code"] == "M1")
         self.assertTrue(m1["verdict_vi"].startswith("TỐT HƠN"), m1)
+        # Tự học phải dồn trọng số vào phương pháp cơ sở thật sự tốt hơn và bản thân cũng tốt hơn ngẫu nhiên.
+        m8 = next(m for m in res["methods"] if m["code"] == "M8")
+        self.assertTrue(m8["verdict_vi"].startswith("TỐT HƠN"), m8)
+        w = res["learn_weights"]
+        self.assertGreater(w["M1"] + w["M2"] + w["M5"], 0.9, w)

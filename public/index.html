@@ -70,6 +70,13 @@
   </section>
 
   <section class="card">
+    <strong>Dự đoán live và tự học</strong>
+    <div class="note">Mỗi ngày hệ thống ghi vé của từng phương pháp cho kỳ kế tiếp TRƯỚC giờ quay (CSDL từ chối vé ghi muộn),
+      rồi đối chiếu khi có kết quả. M8 tự điều chỉnh trọng số theo thành tích các kỳ trước.</div>
+    <div id="live" class="note">Đang tải…</div>
+  </section>
+
+  <section class="card">
     <strong>Xuất dữ liệu</strong>
     <div class="note">Toàn bộ lịch sử chỉ được ghi thêm, không bao giờ sửa hay xóa.</div>
     <div class="row" style="margin-top:8px">
@@ -185,11 +192,51 @@ async function loadBacktest() {
   h += "</table><div class='warn'>" + esc(j.note_vi) + " Xác suất trúng độc đắc của mỗi vé vẫn là 1 trên "
      + nf(j.goal_odds["6"].one_in) + ".</div>";
   $("#bt").innerHTML = h;
+  lastWeights = j.learn_weights || null;
+}
+
+let lastWeights = null;
+async function loadLive() {
+  $("#live").textContent = "Đang tải…";
+  const g = game;
+  const {ok, j} = await getJSON("/api/live?game=" + g);
+  if (g !== game) return;
+  if (!ok) { $("#live").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
+  if (!j.ready) { $("#live").textContent = "Chưa có dữ liệu."; return; }
+  let h = "";
+  if (lastWeights) {
+    h += "<div style='margin-top:6px'><b>Trọng số tự học hiện tại (M8)</b>: "
+       + Object.entries(lastWeights).map(([c, w]) => c + " " + (w * 100).toFixed(1) + "%").join(" · ") + "</div>";
+  }
+  if (!j.draws.length) {
+    h += "<div style='margin-top:6px'>Chưa có vé live nào. Vé đầu tiên được ghi ở lần thu thập kế tiếp.</div>";
+  }
+  for (const d of j.draws.slice(0, 6)) {
+    h += "<div style='margin-top:12px'><b>Kỳ " + d.draw_no + "</b> · quay " + fmtTime(d.draw_at) + " · vé ghi lúc " + fmtTime(d.created_at)
+       + "<br>" + (d.result ? "Kết quả: " + balls(d.result) + (d.bonus != null ? " <span class='ball b'>" + String(d.bonus).padStart(2, "0") + "</span>" : "")
+                           : "<span class='note'>Chưa có kết quả</span>") + "</div><table>";
+    for (const t of d.tickets) {
+      const hit = t.hits == null ? "—" : t.hits + " số" + (t.bonus_hit ? " + ĐB" : "") + (t.prize_tier ? " · " + t.prize_tier : "");
+      h += "<tr title='" + esc(t.explanation_vi) + "'><td><b>" + t.code + "</b></td><td>" + balls(t.numbers) + "</td><td>" + hit + "</td></tr>";
+    }
+    h += "</table>";
+  }
+  const sc = j.stats.filter(s => s.scored);
+  if (sc.length) {
+    h += "<div style='margin-top:12px'><b>Thành tích live</b></div><table><tr><th>Phương pháp</th><th>Số vé đã chấm</th><th>TB số trúng</th>"
+       + "<th>Từ 3 số (thực tế / kỳ vọng)</th><th>Từ 4 số</th></tr>";
+    for (const s of sc) h += "<tr><td><b>" + s.code + "</b> " + esc(s.name_vi) + "</td><td>" + s.scored + "</td><td>" + s.mean_hits
+       + " <span class='note'>(ngẫu nhiên " + s.random_mean_hits + ")</span></td><td>" + s.goals["3"].actual + " / " + s.goals["3"].expected
+       + "</td><td>" + s.goals["4"].actual + " / " + s.goals["4"].expected + "</td></tr>";
+    h += "</table>";
+  }
+  h += "<div class='note'>" + esc(j.note_vi) + "</div>";
+  $("#live").innerHTML = h;
 }
 
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
-  game = b.dataset.g; loadDraws(); loadBacktest();
+  game = b.dataset.g; loadDraws(); loadBacktest().then(loadLive);
 });
 
 $("#run").onclick = async () => {
@@ -197,10 +244,11 @@ $("#run").onclick = async () => {
   const {ok, j} = await getJSON("/api/cron?manual=1");
   b.disabled = false; b.textContent = "Chạy thu thập ngay";
   if (!ok) alert(j.error_vi || "Lỗi");
-  await loadStatus(); await loadDraws(); await loadBacktest();
+  if (ok && j.live_vi) alert(j.live_vi);
+  await loadStatus(); await loadDraws(); await loadBacktest(); await loadLive();
 };
 
-loadStatus(); loadDraws(); loadBacktest();
+loadStatus(); loadDraws(); loadBacktest().then(loadLive);
 </script>
 </body>
 </html>
