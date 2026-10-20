@@ -77,6 +77,22 @@
   </section>
 
   <section class="card">
+    <strong>Phòng thí nghiệm giả thuyết</strong>
+    <div class="note">Bộ sinh giả thuyết tự đề xuất quy tắc, kiểm trên 60% dữ liệu đầu (dev), quyết định trên 20% tiếp theo
+      (validation, hiệu chỉnh Benjamini–Hochberg) và chỉ dùng 20% cuối (test niêm phong) một lần. Thất bại cũng được lưu.</div>
+    <div id="lab" class="note">Đang tải…</div>
+  </section>
+
+  <section class="card">
+    <strong>Kho tri thức</strong>
+    <div class="row" style="margin-top:8px">
+      <input id="kq" placeholder="Tìm: Benjamini, số lạnh, Power…" style="flex:1;min-width:200px;padding:9px;border:1px solid var(--line);border-radius:10px;font:inherit">
+      <button id="ks" class="sec">Tìm</button>
+    </div>
+    <div id="kb" class="note">Đang tải…</div>
+  </section>
+
+  <section class="card">
     <strong>Xuất dữ liệu</strong>
     <div class="note">Toàn bộ lịch sử chỉ được ghi thêm, không bao giờ sửa hay xóa.</div>
     <div class="row" style="margin-top:8px">
@@ -234,9 +250,43 @@ async function loadLive() {
   $("#live").innerHTML = h;
 }
 
+const HST = {proposed: "đề xuất", testing: "đang kiểm", rejected: "bác bỏ", supported_on_validation: "đạt validation",
+             confirmed_on_test: "XÁC NHẬN"};
+async function loadLab() {
+  const g = game;
+  const {ok, j} = await getJSON("/api/research?game=" + g);
+  if (g !== game) return;
+  if (!ok) { $("#lab").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
+  if (!j.ready || !j.n_tested) { $("#lab").textContent = "Chưa có giả thuyết nào. Vòng đầu chạy ở lần thu thập kế tiếp."; return; }
+  let h = "<div style='margin-top:6px'>" + GN[g] + ": đã kiểm <b>" + j.n_tested + "</b> giả thuyết, xác nhận <b>" + j.n_confirmed
+        + "</b>, thất bại " + j.n_failed + ".</div><div class='scroll'><table><tr><th>Giả thuyết</th><th>Kết quả</th><th>Trạng thái</th></tr>";
+  for (const r of j.hypotheses) {
+    const cls = r.status === "confirmed_on_test" ? "ok" : r.status === "rejected" ? "bad" : "";
+    h += "<tr title='" + esc(r.principle_vi) + "'><td>" + esc(r.title_vi) + "</td><td>" + esc(r.result_summary_vi || "") + "</td><td class='" + cls + "'>"
+       + (HST[r.status] || r.status) + "<br><span class='note'>" + esc(r.status_note_vi || "") + "</span></td></tr>";
+  }
+  $("#lab").innerHTML = h + "</table></div><div class='note'>" + esc(j.note_vi) + "</div>";
+}
+
+const SRC = {official: "chính thức", paper: "bài báo khoa học", article: "bài viết", internal: "thí nghiệm nội bộ"};
+async function loadKB(q) {
+  const {ok, j} = await getJSON("/api/knowledge?q=" + encodeURIComponent(q || ""));
+  if (!ok) { $("#kb").innerHTML = '<span class="bad">' + esc(j.error_vi) + "</span>"; return; }
+  if (!j.ready) { $("#kb").textContent = "Chưa có dữ liệu."; return; }
+  let h = "<div style='margin-top:6px'>" + j.total + " tài liệu" + (j.q ? " · kết quả cho «" + esc(j.q) + "»: " + j.docs.length : "") + "</div><table>";
+  for (const d of j.docs) {
+    const t = d.url ? "<a href='" + esc(d.url) + "' target='_blank' rel='noopener'>" + esc(d.title) + "</a>" : esc(d.title);
+    h += "<tr><td><b>" + t + "</b><br><span class='note'>" + (SRC[d.source_type] || d.source_type) + " · độ tin cậy " + d.authority_score
+       + "/5</span><br>" + esc(d.summary_vi) + "</td></tr>";
+  }
+  $("#kb").innerHTML = h + "</table>";
+}
+$("#ks").onclick = () => loadKB($("#kq").value);
+$("#kq").onkeydown = e => { if (e.key === "Enter") loadKB($("#kq").value); };
+
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
-  game = b.dataset.g; loadDraws(); loadBacktest().then(loadLive);
+  game = b.dataset.g; loadDraws(); loadBacktest().then(loadLive); loadLab();
 });
 
 $("#run").onclick = async () => {
@@ -244,11 +294,11 @@ $("#run").onclick = async () => {
   const {ok, j} = await getJSON("/api/cron?manual=1");
   b.disabled = false; b.textContent = "Chạy thu thập ngay";
   if (!ok) alert(j.error_vi || "Lỗi");
-  if (ok && j.live_vi) alert(j.live_vi);
-  await loadStatus(); await loadDraws(); await loadBacktest(); await loadLive();
+  if (ok && j.live_vi) alert(j.live_vi + "\n" + (j.research_vi || ""));
+  await loadStatus(); await loadDraws(); await loadBacktest(); await loadLive(); await loadLab(); await loadKB("");
 };
 
-loadStatus(); loadDraws(); loadBacktest().then(loadLive);
+loadStatus(); loadDraws(); loadBacktest().then(loadLive); loadLab(); loadKB("");
 </script>
 </body>
 </html>
