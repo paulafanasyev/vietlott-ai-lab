@@ -9,6 +9,8 @@ Mọi văn bản trả cho người dùng bằng tiếng Việt. Một hàm duy 
   /api/live    — dự đoán live (ghi trước giờ quay) và kết quả đối chiếu (?game=mega645|power655)
   /api/research — giả thuyết và thí nghiệm, kể cả thất bại (?game=mega645|power655)
   /api/knowledge — tìm trong kho tri thức (?q=...)
+  /api/automation — nhật ký tác vụ, báo cáo, sao lưu và kết quả thử khôi phục
+  /api/backup  — tải bản sao lưu đầy đủ (JSON nén gzip, kèm băm từng bảng)
 """
 
 from __future__ import annotations
@@ -105,30 +107,34 @@ def do_ingest(trigger: str) -> dict:
             audit.close()
     finally:
         conn.close()
-    # Giai đoạn 3: chấm điểm vé live và ghi dự đoán cho kỳ kế tiếp (giao dịch riêng; lỗi không làm hỏng thu thập).
-    try:
-        from vlab.live import run_live
-        live_conn = connect()
+    sha = os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown")
+    from vlab.automation import backup_and_verify, record_job, run_reports
+    from vlab.live import run_live
+    from vlab.research import run_research
+    # Giai đoạn 3–5: mỗi bước một giao dịch và một dòng job_runs; lỗi một bước không chặn các bước sau.
+    steps = (("live", lambda c: run_live(c, sha)), ("research", lambda c: run_research(c, sha)),
+             ("report", run_reports), ("backup", backup_and_verify))
+    out = {}
+    all_ok = True
+    for name, fn in steps:
+        started = datetime.now(timezone.utc)
+        c = connect()
         try:
-            live = run_live(live_conn, os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown"))
+            try:
+                text, status = fn(c), "success"
+            except Exception as exc:
+                text, status = f"LỖI {type(exc).__name__}: {str(exc)[:400]}", "failed"
+                all_ok = False
+            try:
+                record_job(c, name, trigger, started, status, text)
+            except Exception:
+                c.rollback()
         finally:
-            live_conn.close()
-        live_ok = True
-    except Exception as exc:
-        live, live_ok = f"Dự đoán: LỖI {type(exc).__name__}: {str(exc)[:400]}", False
-    # Giai đoạn 4: vòng giả thuyết (giao dịch riêng).
-    try:
-        from vlab.research import run_research
-        rconn = connect()
-        try:
-            research_vi = run_research(rconn, os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown"))
-        finally:
-            rconn.close()
-        research_ok = True
-    except Exception as exc:
-        research_vi, research_ok = f"Nghiên cứu: LỖI {type(exc).__name__}: {str(exc)[:400]}", False
-    return {"ok": code == 0 and live_ok and research_ok, "exit_code": code, "migrations_applied": applied,
-            "summary_vi": buf.getvalue(), "live_vi": live, "research_vi": research_vi}
+            c.close()
+        out[name] = text
+    return {"ok": code == 0 and all_ok, "exit_code": code, "migrations_applied": applied,
+            "summary_vi": buf.getvalue(), "live_vi": out["live"], "research_vi": out["research"],
+            "report_vi": out["report"], "backup_vi": out["backup"]}
 
 
 # ---------------------------------------------------------------- đọc dữ liệu
@@ -246,6 +252,15 @@ def _with_conn(fn, *args):
         conn.close()
 
 
+def backup_download() -> tuple[bytes, str]:
+    from vlab.automation import backup_file
+    conn = connect()
+    try:
+        return backup_file(conn)
+    finally:
+        conn.close()
+
+
 # ---------------------------------------------------------------- định tuyến
 def health() -> dict:
     """Luôn trả 200: chẩn đoán từng bước (biến môi trường, thư viện, kết nối, lược đồ) mà không lộ bí mật."""
@@ -255,7 +270,7 @@ def health() -> dict:
                  "migrations_dir": (ROOT / "db" / "migrations").is_dir(),
                  "worker_dir": (ROOT / "worker" / "vlab").is_dir()}
     for mod in ("psycopg", "requests", "bs4", "lxml", "vlab.store", "vlab.ingest", "vlab.backtest", "vlab.live",
-                "vlab.research"):
+                "vlab.research", "vlab.automation"):
         try:
             __import__(mod)
             out[mod] = "ok"
@@ -286,7 +301,7 @@ def route(path: str, q: dict, environ) -> tuple[str, list, bytes]:
     name = (q.get("route") or path).strip("/").rsplit("/", 1)[-1]
     if name == "health":
         return "200 OK", JSON_HDR, _j(health())
-    if name == "cron":
+    if name in ("cron", "cron-morning"):
         ok, trigger, why = _cron_allowed(environ, q)
         if not ok:
             return "403 Forbidden", JSON_HDR, _j({"ok": False, "error_vi": why})
@@ -321,6 +336,13 @@ def route(path: str, q: dict, environ) -> tuple[str, list, bytes]:
     if name == "knowledge":
         from vlab.research import search_knowledge
         return "200 OK", JSON_HDR, _j(_with_conn(search_knowledge, q.get("q", "")))
+    if name == "automation":
+        from vlab.automation import automation_report
+        return "200 OK", JSON_HDR, _j(_with_conn(automation_report))
+    if name == "backup":
+        body, fname = backup_download()
+        return "200 OK", [("Content-Type", "application/gzip"), ("Content-Disposition", f'attachment; filename="{fname}"'),
+                          ("Cache-Control", "no-store")], body
     if name == "export":
         kind, fmt, game = q.get("kind", "draws"), q.get("format", "csv"), q.get("game") or None
         if kind not in KINDS or fmt not in ("csv", "json") or (game and game not in GAMES):
