@@ -50,30 +50,45 @@
 </head>
 <body>
 <header>
-  <h1>Vietlott AI Lab</h1>
-  <div class="note">Phòng nghiên cứu Mega 6/45 và Power 6/55: đo lường trung thực xem có phương pháp nào khác ngẫu nhiên hay không.</div>
-  <div class="disc">Xổ số là ngẫu nhiên. Không phương pháp nào đảm bảo trúng thưởng.</div>
+  <div class="row" style="justify-content:space-between"><h1>Vietlott AI Lab</h1>
+    <div class="row tabs"><button data-lang="vi">Tiếng Việt</button><button data-lang="ru">Русский</button></div></div>
+  <div class="note" id="sub">Phòng nghiên cứu Mega 6/45 và Power 6/55: đo lường trung thực xem có phương pháp nào khác ngẫu nhiên hay không.</div>
+  <div class="disc" id="disc">Xổ số là ngẫu nhiên. Không phương pháp nào đảm bảo trúng thưởng.</div>
 </header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <script>
+const LANG = localStorage.getItem("vlab_lang") === "ru" ? "ru" : "vi";
+const RU = {"thành công": "успешно", "một phần": "частично", "lỗi": "ошибка", "bỏ qua": "пропущено", "Thu thập": "Сбор", "Vé live": "Live-билеты", "Giả thuyết": "Гипотезы", "Báo cáo": "Отчёты", "Sao lưu": "Бэкап", "Lỗi": "Ошибка", "Phản hồi không hợp lệ (": "Некорректный ответ (", "1. Tổng quan": "1. Обзор", "2. Dự đoán Mega 6/45": "2. Прогноз Mega 6/45", "3. Dự đoán Power 6/55": "3. Прогноз Power 6/55", "4. Lịch sử dự đoán": "4. История прогнозов", "5. Lịch sử kết quả": "5. История тиражей", "6. Đối chiếu dự đoán và kết quả": "6. Сверка прогнозов с результатами", "7. Phòng thí nghiệm thuật toán": "7. Лаборатория алгоритмов", "8. Trung tâm thử nghiệm và tự học": "8. Эксперименты и самообучение", "9. Kho kiến thức": "9. База знаний", "10. Nguồn dữ liệu và trạng thái kiểm chứng": "10. Источники и статусы проверки", "11. Biểu đồ hiệu quả": "11. Графики эффективности", "12. Cài đặt tự động hóa": "12. Настройки автоматики", "13. Nhật ký hoạt động và lỗi": "13. Журнал работы и ошибок", "14. Sao lưu và xuất dữ liệu": "14. Бэкапы и выгрузка", "Tổng quan": "Обзор", "<div id='ov' class='note'>Đang tải…</div>": "<div id='ov' class='note'>Загрузка…</div>", "</b>Kỳ mới nhất: ": "</b>Последний тираж: ", "Vé cho kỳ <b>": "Билеты на тираж <b>", "): đã ghi ": "): записано ", " vé": " билетов", "Vé kỳ tới: sẽ ghi ở lần chạy kế tiếp": "Билеты на следующий тираж: запишутся при следующем запуске", "<div>Đối chiếu gần nhất: kỳ ": "<div>Последняя сверка: тираж ", ", vé tốt nhất trúng ": ", лучший билет угадал ", " số</div>": " чисел</div>", "Khác ngẫu nhiên có ý nghĩa: ": "Значимо отличаются от случайного: ", "Không phương pháp nào tốt hơn ngẫu nhiên (kiểm định trên ": "Ни один метод не лучше случайного (проверка на ", " kỳ).": " тиражах).", "'>Xem dự đoán →</a></div>": "'>Смотреть прогноз →</a></div>", "<div style='margin-top:10px'>Toàn vẹn dữ liệu: ": "<div style='margin-top:10px'>Целостность данных: ", "<span class='ok'>đúng</span>": "<span class='ok'>в порядке</span>", "<span class='bad'>PHÁT HIỆN SAI LỆCH</span>": "<span class='bad'>ОБНАРУЖЕНО РАСХОЖДЕНИЕ</span>", "<div class='chips'>Lần thành công gần nhất: ": "<div class='chips'>Последний успешный запуск: ", "<div class='note'>Kiểm tra lúc ": "<div class='note'>Проверено ", ": <span class='ok'>ĐẠT ": ": <span class='ok'>ПРОЙДЕНО ", "</span> · <span class='wait'>ĐANG CHỜ ": "</span> · <span class='wait'>ОЖИДАЕТ ", "</span> · <span class='bad'>CHƯA ĐẠT ": "</span> · <span class='bad'>НЕ ПРОЙДЕНО ", "</span></div><table><tr><th>#</th><th>Tiêu chí</th><th>Kết quả</th><th>Bằng chứng</th></tr>": "</span></div><table><tr><th>#</th><th>Критерий</th><th>Результат</th><th>Доказательство</th></tr>", "Nghiệm thu 14 mục (kiểm tra trực tiếp trên CSDL)": "Приёмка по 14 пунктам (проверка прямо в базе)", "Dự đoán ": "Прогноз ", "<div id='pr' class='note'>Đang tải…</div>": "<div id='pr' class='note'>Загрузка…</div>", "Mỗi phương pháp ghi một vé cho kỳ tới TRƯỚC giờ quay (CSDL từ chối vé ghi muộn). Vé được ghi ngay sau khi có kết quả kỳ trước: 3 kỳ mỗi tuần cho mỗi trò chơi.": "Каждый метод записывает один билет на следующий тираж ДО его начала (база отклоняет поздние билеты). Билеты пишутся сразу после результата предыдущего тиража: 3 тиража в неделю на каждую игру.", "<div>Vé cho kỳ tới sẽ được ghi ở lần chạy kế tiếp (sau khi có kết quả kỳ vừa quay).</div>": "<div>Билеты на следующий тираж запишутся при следующем запуске (после результата прошедшего тиража).</div>", "<div style='font-size:16px;margin-top:6px'>Kỳ <b>": "<div style='font-size:16px;margin-top:6px'>Тираж <b>", "</b> · quay lúc <b>": "</b> · розыгрыш <b>", "</b> · vé ghi lúc ": "</b> · билеты записаны ", "</div><table><tr><th>Phương pháp</th><th>Vé</th><th>Giải thích</th></tr>": "</div><table><tr><th>Метод</th><th>Билет</th><th>Как выбран</th></tr>", "</table><div id='sc' class='note'>Đang tính xác suất của cả bộ vé…</div>": "</table><div id='sc' class='note'>Считаю шансы всего набора…</div>", "<div style='margin-top:12px'><b>Xác suất của MỘT vé bất kỳ</b> (mọi phương pháp như nhau)</div><div class='goals'>": "<div style='margin-top:12px'><b>Шанс ОДНОГО любого билета</b> (у всех методов одинаковый)</div><div class='goals'>", "Độc đắc": "Джекпот", "Đúng ": "Ровно ", " số": " чисел", "</span><b>1 trên ": "</span><b>1 из ", "<div class='note' style='margin-top:10px'>Trọng số tự học M8: ": "<div class='note' style='margin-top:10px'>Веса самообучения M8: ", "<div class='warn'>Chọn số bằng phương pháp nào thì xác suất trúng của mỗi vé vẫn như vé ngẫu nhiên. Bảng kiểm định ở mục 7 cho thấy chưa phương pháp nào khác ngẫu nhiên.</div>": "<div class='warn'>Каким бы методом ни выбирались числа, шанс каждого билета такой же, как у случайного. Проверка в разделе 7 показывает: пока ни один метод не отличается от случайного.</div>", "<div style='margin-top:10px'><b>Cả bộ ": "<div style='margin-top:10px'><b>Весь набор: ", " vé khác nhau</b> (ít nhất một vé đạt), so với ": " разных билетов</b> (хотя бы один билет), против ", " vé ngẫu nhiên:</div><div class='goals'>": " случайных билетов:</div><div class='goals'>", "<div class='goal'><span class='note'>Từ 3 số</span><b>": "<div class='goal'><span class='note'>3 и больше</span><b>", "</b><span class='note'>ngẫu nhiên: ": "</b><span class='note'>случайные: ", "<div class='goal'><span class='note'>Từ 4 số</span><b>": "<div class='goal'><span class='note'>4 и больше</span><b>", "</b><span class='note'>1 trên ": "</b><span class='note'>1 из ", " · ngẫu nhiên: ": " · случайные: ", "<div class='goal'><span class='note'>Từ 5 số</span><b>1 trên ": "<div class='goal'><span class='note'>5 и больше</span><b>1 из ", "</b><span class='note'>ngẫu nhiên: như nhau</span></div>": "</b><span class='note'>случайные: так же</span></div>", "<div class='goal'><span class='note'>Độc đắc</span><b>1 trên ": "<div class='goal'><span class='note'>Джекпот</span><b>1 из ", "</b><span class='note'>ngẫu nhiên: như nhau</span></div></div>": "</b><span class='note'>случайные: так же</span></div></div>", "<div class='note'>3+ và 4+: mô phỏng 200 000 kỳ quay (sai số khoảng ±0,2 điểm %); 5+ và độc đắc: công thức chính xác/xấp xỉ.</div>": "<div class='note'>3+ и 4+: моделирование 200 000 тиражей (погрешность около ±0,2 п.п.); 5+ и джекпот: точная/приближённая формула.</div>", "<div style='margin-top:12px'><b>Kỳ ": "<div style='margin-top:12px'><b>Тираж ", "</b> · quay ": "</b> · розыгрыш ", " · vé ghi ": " · записан ", "Kết quả: ": "Результат: ", "<span class='note'>Chưa quay / chưa có kết quả</span>": "<span class='note'>Ещё не разыгран / нет результата</span>", " + ĐB": " + доп.", "Lịch sử dự đoán": "История прогнозов", "<div id='ph' class='note'>Đang tải…</div>": "<div id='ph' class='note'>Загрузка…</div>", "Mọi vé live đã ghi, kể cả vé chưa quay. Không vé nào bị sửa hay xóa.": "Все записанные live-билеты, включая ещё не разыгранные. Ни один билет не изменён и не удалён.", "Chưa có vé live.": "Live-билетов пока нет.", "Lịch sử kết quả": "История тиражей", "<div id='rs' class='note'>Đang tải…</div>": "<div id='rs' class='note'>Загрузка…</div>", "Chưa có dữ liệu.": "Данных пока нет.", "<div class='scroll'><table><tr><th>Kỳ</th><th>Ngày</th><th>Bộ số</th><th>Trạng thái</th></tr>": "<div class='scroll'><table><tr><th>Тираж</th><th>Дата</th><th>Числа</th><th>Статус</th></tr>", "</table></div><div class='note'>200 kỳ gần nhất. Toàn bộ: mục 14 (xuất CSV/JSON).</div>": "</table></div><div class='note'>Последние 200 тиражей. Полностью: раздел 14 (выгрузка CSV/JSON).</div>", "Đối chiếu dự đoán và kết quả": "Сверка прогнозов с результатами", "<div id='cp' class='note'>Đang tải…</div>": "<div id='cp' class='note'>Загрузка…</div>", "<div>Chưa có kỳ nào được đối chiếu: vé live đầu tiên sẽ được chấm ngay sau kỳ quay đầu tiên.</div>": "<div>Сверок пока нет: первые live-билеты проверятся сразу после первого тиража.</div>", "<table><tr><th>Phương pháp</th><th>Vé đã chấm</th><th>TB số trúng</th><th>Từ 3 số (thực tế / kỳ vọng ngẫu nhiên)</th><th>Từ 4 số</th></tr>": "<table><tr><th>Метод</th><th>Проверено билетов</th><th>Среднее угаданных</th><th>3+ (факт / ожидание у случайного)</th><th>4+</th></tr>", " <span class='note'>(ngẫu nhiên ": " <span class='note'>(случайный ", "Từ 5 số": "5 и больше", "Từ 4 số": "4 и больше", "Từ 3 số": "3 и больше", "Phòng thí nghiệm thuật toán": "Лаборатория алгоритмов", "<div id='bt' class='note'>Đang tính… (lần đầu có thể mất vài giây)</div>": "<div id='bt' class='note'>Считаю… (первый раз может занять несколько секунд)</div>", "Walk-forward: với mỗi kỳ, phương pháp chỉ được nhìn các kỳ trước đó. Chỉ dùng kỳ VERIFIED / CROSS-CHECKED.": "Walk-forward: для каждого тиража метод видит только предыдущие тиражи. Используются только тиражи VERIFIED / CROSS-CHECKED.", " kỳ (": " тиражей (", " kỳ đầu chỉ để học → chấm trên ": " первых только для обучения → оценка на ", " kỳ.</div>": " тиражах.</div>", "<div class='scroll'><table><tr><th>Phương pháp</th><th>TB số trúng / vé</th>": "<div class='scroll'><table><tr><th>Метод</th><th>Среднее угаданных / билет</th>", "<br>thực tế / kỳ vọng</th>": "<br>факт / ожидание</th>", "<th>Kết luận</th></tr>": "<th>Вывод</th></tr>", "</table></div><div class='note'>Kiểm định z cho số trúng trung bình, hiệu chỉnh Bonferroni cho ": "</table></div><div class='note'>z-тест по среднему числу угаданных, поправка Бонферрони на ", " phương pháp (α = ": " методов (α = ", "đề xuất": "предложена", "đang kiểm": "проверяется", "bác bỏ": "отвергнута", "đạt validation": "прошла validation", "XÁC NHẬN": "ПОДТВЕРЖДЕНА", "Trung tâm thử nghiệm và tự học": "Эксперименты и самообучение", "<div id='lab' class='note'>Đang tải…</div>": "<div id='lab' class='note'>Загрузка…</div>", "Giả thuyết được kiểm trên 60% dữ liệu đầu (dev), quyết định trên 20% tiếp (validation, Benjamini–Hochberg), 20% cuối (test niêm phong) chỉ dùng một lần. Thất bại cũng được lưu.": "Гипотеза проверяется на первых 60% данных (dev), решение принимается на следующих 20% (validation, Бенджамини–Хохберг), последние 20% (запечатанный тест) используются один раз. Неудачи тоже сохраняются.", "<div style='margin-top:6px'><b>Trọng số tự học M8</b>: ": "<div style='margin-top:6px'><b>Веса самообучения M8</b>: ", "<div>Chưa có giả thuyết.</div>": "<div>Гипотез пока нет.</div>", "<div style='margin-top:6px'>Đã kiểm <b>": "<div style='margin-top:6px'>Проверено <b>", "</b> giả thuyết, xác nhận <b>": "</b> гипотез, подтверждено <b>", "</b>, thất bại ": "</b>, неудачных ", ".</div><div class='scroll'><table><tr><th>Giả thuyết</th><th>Kết quả</th><th>Trạng thái</th></tr>": ".</div><div class='scroll'><table><tr><th>Гипотеза</th><th>Результат</th><th>Статус</th></tr>", "chính thức": "официальный", "bài báo khoa học": "научная статья", "bài viết": "статья", "thí nghiệm nội bộ": "внутренний эксперимент", "Kho kiến thức": "База знаний", "<div class='row' style='margin-top:8px'><input id='kq' class='q' placeholder='Tìm: Benjamini, số lạnh, Power…' value='": "<div class='row' style='margin-top:8px'><input id='kq' class='q' placeholder='Поиск: Benjamini, số lạnh, Power…' value='", "'><button id='ks' class='sec'>Tìm</button></div><div id='kb' class='note'>Đang tải…</div>": "'><button id='ks' class='sec'>Найти</button></div><div id='kb' class='note'>Загрузка…</div>", " tài liệu": " документов", " · kết quả cho «": " · найдено по «", "»: ": "»: ", " · độ tin cậy ": " · надёжность ", "Nguồn dữ liệu và trạng thái kiểm chứng": "Источники и статусы проверки", "<div id='src' class='note'>Đang tải…</div>": "<div id='src' class='note'>Загрузка…</div>", "<table><tr><td><span class='st VERIFIED'>VERIFIED</span></td><td>Nguồn chính thức vietlott.vn khớp với ít nhất một kho lưu trữ độc lập.</td></tr>": "<table><tr><td><span class='st VERIFIED'>VERIFIED</span></td><td>Официальный vietlott.vn совпал хотя бы с одним независимым архивом.</td></tr>", "<tr><td><span class='st CROSS-CHECKED'>CROSS-CHECKED</span></td><td>Ít nhất hai kho lưu trữ độc lập khớp nhau, chưa có xác nhận trực tiếp từ nguồn chính thức.</td></tr>": "<tr><td><span class='st CROSS-CHECKED'>CROSS-CHECKED</span></td><td>Совпали минимум два независимых архива, прямого подтверждения от официального источника нет.</td></tr>", "<tr><td><span class='st NOT-PROVEN'>NOT PROVEN</span></td><td>Chỉ một nhóm nguồn gốc; chưa dùng trong tính toán.</td></tr>": "<tr><td><span class='st NOT-PROVEN'>NOT PROVEN</span></td><td>Только один источник; в расчётах не используется.</td></tr>", "<tr><td><span class='st CONFLICT'>CONFLICT</span></td><td>Các nguồn mâu thuẫn; kỳ này bị loại khỏi mọi tính toán.</td></tr>": "<tr><td><span class='st CONFLICT'>CONFLICT</span></td><td>Источники расходятся; тираж исключён из всех расчётов.</td></tr>", "<tr><td><span class='st PENDING'>PENDING</span></td><td>Theo lịch đã quay nhưng chưa nguồn nào công bố kết quả.</td></tr></table>": "<tr><td><span class='st PENDING'>PENDING</span></td><td>По расписанию тираж прошёл, но результата ещё нет ни в одном источнике.</td></tr></table>", "<div class='warn'>vietlott.vn chặn máy chủ đặt ngoài Việt Nam (HTTP 403), nên hiện tại các kỳ chỉ đạt CROSS-CHECKED.</div>": "<div class='warn'>vietlott.vn блокирует серверы вне Вьетнама (HTTP 403), поэтому сейчас тиражи получают только CROSS-CHECKED.</div>", "<details open><summary>Báo cáo thu thập gần nhất · ": "<details open><summary>Последний отчёт о сборе (на вьетнамском) · ", "' font-size='11' fill='#dc2626'>ngẫu nhiên ": "' font-size='11' fill='#dc2626'>случайный ", "Biểu đồ hiệu quả": "Графики эффективности", "<div id='ch' class='note'>Đang tính…</div>": "<div id='ch' class='note'>Считаю…</div>", "Đường đỏ: mức kỳ vọng của vé ngẫu nhiên. Thanh dài hơn chưa chắc là tốt hơn: xem kết luận thống kê ở mục 7.": "Красная линия: ожидание для случайного билета. Длиннее полоса ещё не значит лучше: статистический вывод в разделе 7.", "Số trúng trung bình mỗi vé (": "Среднее угаданных на билет (", " kỳ)": " тиражей)", "Tỷ lệ vé đạt từ 3 số": "Доля билетов с 3+", "Tỷ lệ vé đạt từ 4 số": "Доля билетов с 4+", "Cài đặt tự động hóa": "Настройки автоматики", "<div id='as' class='note'>Đang tải…</div>": "<div id='as' class='note'>Загрузка…</div>", "</div><table><tr><th>Lịch</th><th>Giờ Việt Nam</th><th>Việc</th></tr>": "</div><table><tr><th>Расписание</th><th>Время Вьетнама</th><th>Что делает</th></tr>", "<tr><td>Vercel Cron /api/cron</td><td>hằng ngày ~19:45</td><td>thu thập sau giờ quay 18:00, chấm vé, ghi vé kỳ tới, giả thuyết, báo cáo</td></tr>": "<tr><td>Vercel Cron /api/cron</td><td>ежедневно ~19:45</td><td>сбор после тиража 18:00, сверка билетов, билеты на следующий тираж, гипотезы, отчёты</td></tr>", "<tr><td>Vercel Cron /api/cron-morning</td><td>hằng ngày ~07:00</td><td>thu thập lại kết quả công bố muộn, các bước như trên</td></tr>": "<tr><td>Vercel Cron /api/cron-morning</td><td>ежедневно ~07:00</td><td>повторный сбор поздно опубликованных результатов, те же шаги</td></tr>", "<tr><td>Sao lưu + thử khôi phục</td><td>mỗi ngày một lần (cách nhau ≥ 20 giờ)</td><td>trong lần chạy đầu tiên của ngày</td></tr>": "<tr><td>Бэкап + проверка восстановления</td><td>раз в сутки (не чаще чем раз в 20 часов)</td><td>в первом запуске дня</td></tr>", "<tr><td>Báo cáo tuần</td><td>mỗi 7 ngày</td><td>tóm tắt kỳ, vé live, giả thuyết, tác vụ, sao lưu</td></tr>": "<tr><td>Недельный отчёт</td><td>раз в 7 дней</td><td>тиражи, live-билеты, гипотезы, задачи, бэкапы</td></tr>", "<tr><td>Chạy tay</td><td>bất kỳ lúc nào, cách lần trước ≥ 10 phút</td><td>nút bên dưới</td></tr></table>": "<tr><td>Ручной запуск</td><td>в любое время, не чаще раза в 10 минут</td><td>кнопка ниже</td></tr></table>", "<div class='note'>Không có thông báo (theo quyết định 16.10): trang tự cập nhật sau mỗi lần chạy. Gói Vercel miễn phí có thể lệch giờ chạy trong phạm vi một giờ.</div>": "<div class='note'>Уведомлений нет (решение от 16.10): сайт обновляется после каждого запуска. Бесплатный Vercel может сдвигать запуск в пределах часа.</div>", "<div class='row' style='margin-top:10px'><button id='run'>Chạy thu thập ngay</button></div>": "<div class='row' style='margin-top:10px'><button id='run'>Запустить сбор сейчас</button></div>", "Đang chạy… (tới 5 phút)": "Работаю… (до 5 минут)", "Chạy thu thập ngay": "Запустить сбор сейчас", "Nhật ký hoạt động và lỗi": "Журнал работы и ошибок", "<div id='lg' class='note'>Đang tải…</div>": "<div id='lg' class='note'>Загрузка…</div>", "20 tác vụ gần nhất (job_runs, chỉ ghi thêm). Bấm vào dòng để xem chi tiết.": "20 последних задач (job_runs, только добавление). Нажмите на строку, чтобы открыть детали (текст на вьетнамском).", "theo lịch": "по расписанию", "chạy tay": "вручную", "<div style='margin-top:12px'><b>Báo cáo</b></div>": "<div style='margin-top:12px'><b>Отчёты (на вьетнамском)</b></div>", "Báo cáo tuần": "Недельный отчёт", "Sau kỳ ": "После тиража ", "<div class='note'>Chưa có báo cáo.</div>": "<div class='note'>Отчётов пока нет.</div>", "Sao lưu và xuất dữ liệu": "Бэкапы и выгрузка", "<div class='row' style='margin-top:8px'><a class='btn' href='/api/backup'>Tải bản sao lưu đầy đủ (.json.gz)</a></div>": "<div class='row' style='margin-top:8px'><a class='btn' href='/api/backup'>Скачать полный бэкап (.json.gz)</a></div>", "<div class='note'>Tệp chứa toàn bộ bảng lịch sử và băm SHA-256 của từng bảng, nên có thể kiểm tra lại bất cứ lúc nào. Nên tải về và cất ở nơi khác định kỳ.</div><div id='bk' class='note'>Đang tải…</div>": "<div class='note'>В файле все таблицы истории и SHA-256 каждой таблицы, его можно проверить в любой момент. Стоит регулярно скачивать и хранить отдельно.</div><div id='bk' class='note'>Загрузка…</div>", "Xuất dữ liệu": "Выгрузка данных", "<div class='row' style='margin-top:8px'><a class='btn sec' href='/api/export?kind=draws&format=csv'>Kết quả (CSV)</a><a class='btn sec' href='/api/export?kind=draws&format=json'>Kết quả (JSON)</a>": "<div class='row' style='margin-top:8px'><a class='btn sec' href='/api/export?kind=draws&format=csv'>Тиражи (CSV)</a><a class='btn sec' href='/api/export?kind=draws&format=json'>Тиражи (JSON)</a>", "<a class='btn sec' href='/api/export?kind=history&format=csv'>Lịch sử phiên bản</a><a class='btn sec' href='/api/export?kind=observations&format=csv'>Quan sát từ các nguồn</a><a class='btn sec' href='/api/export?kind=conflicts&format=csv'>Xung đột</a></div>": "<a class='btn sec' href='/api/export?kind=history&format=csv'>История версий</a><a class='btn sec' href='/api/export?kind=observations&format=csv'>Данные источников</a><a class='btn sec' href='/api/export?kind=conflicts&format=csv'>Конфликты</a></div>", "Toàn bộ lịch sử chỉ được ghi thêm, không bao giờ sửa hay xóa.": "Вся история только дополняется, никогда не правится и не удаляется.", "<table><tr><th>Bản</th><th>Thử khôi phục</th></tr>": "<table><tr><th>Бэкап</th><th>Проверка восстановления</th></tr>", "<tr><td colspan='2'>Chưa có bản sao lưu.</td></tr>": "<tr><td colspan='2'>Бэкапов пока нет.</td></tr>", "ĐẠT": "ПРОЙДЕНО", "ĐANG CHỜ": "ОЖИДАЕТ", "CHƯA ĐẠT": "НЕ ПРОЙДЕНО", "KHÔNG ĐẠT": "НЕ ПРОЙДЕНО", "TỐT HƠN ngẫu nhiên (có ý nghĩa thống kê)": "ЛУЧШЕ случайного (статистически значимо)", "KÉM HƠN ngẫu nhiên (có ý nghĩa thống kê)": "ХУЖЕ случайного (статистически значимо)", "đường cơ sở": "эталон", "không khác ngẫu nhiên": "не отличается от случайного", "Thu thập từ nguồn chính thức vietlott.vn": "Сбор с официального vietlott.vn", "Đối chiếu ≥ 2 kho lưu trữ độc lập": "Сверка ≥ 2 независимых архивов", "Trạng thái VERIFIED / CROSS-CHECKED / NOT PROVEN / CONFLICT / PENDING": "Статусы VERIFIED / CROSS-CHECKED / NOT PROVEN / CONFLICT / PENDING", "Lịch sử bất biến (CSDL từ chối UPDATE/DELETE)": "Неизменяемая история (база отклоняет UPDATE/DELETE)", "Chuỗi băm và điểm kiểm tra toàn vẹn": "Цепочка хэшей и контрольные точки целостности", "≥ 5 phương pháp tạo vé dự đoán live": "≥ 5 методов создают live-билеты", "Chống rò rỉ tương lai (vé ghi trước giờ quay, chỉ thấy kỳ cũ)": "Защита от утечки будущего (билет до тиража, видны только прошлые тиражи)", "Backtest walk-forward, chia 60/20/20, so với ngẫu nhiên": "Walk-forward бэктест, разбиение 60/20/20, сравнение со случайным", "Đối chiếu vé live với kết quả thật sau mỗi kỳ": "Сверка live-билетов с реальным результатом после каждого тиража", "Vòng giả thuyết tự động, lưu cả thí nghiệm thất bại": "Автоматический цикл гипотез, неудачи тоже сохраняются", "Kho tri thức có nguồn và tìm kiếm toàn văn": "База знаний с источниками и полнотекстовым поиском", "Tự động chạy theo lịch (job_runs qua nhiều ngày thật)": "Автозапуск по расписанию (job_runs за несколько реальных дней)", "Sao lưu hằng ngày và thử khôi phục": "Ежедневный бэкап и проверка восстановления", "Giao diện 14 mục tiếng Việt, cảnh báo cố định, triển khai Vercel + Neon": "Интерфейс из 14 разделов, постоянное предупреждение, развёртывание Vercel + Neon", "Ngẫu nhiên (đường cơ sở)": "Случайный (эталон)", "Chọn 6 số ngẫu nhiên; mọi phương pháp khác phải vượt được mốc này.": "6 случайных чисел; остальные методы должны обогнать этот уровень.", "Số nóng (toàn bộ lịch sử)": "Горячие числа (вся история)", "6 số xuất hiện nhiều nhất từ trước tới nay.": "6 чисел, выпадавших чаще всего за всю историю.", "Số nóng 50 kỳ gần nhất": "Горячие за 50 тиражей", "6 số xuất hiện nhiều nhất trong 50 kỳ gần nhất.": "6 чисел, выпадавших чаще всего за последние 50 тиражей.", "Số lạnh 50 kỳ gần nhất": "Холодные за 50 тиражей", "6 số xuất hiện ít nhất trong 50 kỳ gần nhất.": "6 чисел, выпадавших реже всего за последние 50 тиражей.", "Số lâu chưa về": "Давно не выпадавшие", "6 số đã lâu nhất chưa xuất hiện.": "6 чисел, которые дольше всех не выпадали.", "Tần suất có trọng số thời gian": "Частота с затуханием", "Tần suất giảm dần theo thời gian (chu kỳ bán rã 30 kỳ).": "Частота, где старые тиражи весят меньше (полураспад 30 тиражей).", "Cặp số đi cùng kỳ trước": "Пары с прошлым тиражом", "Các số hay xuất hiện cùng với các số của kỳ vừa quay.": "Числа, которые чаще всего выпадают вместе с числами прошлого тиража.", "Tổng hợp M1–M6": "Сводный M1–M6", "Trung bình thứ hạng của M1–M6.": "Средний ранг числа по методам M1–M6.", "Tự học (trọng số thích nghi)": "Самообучение (адаптивные веса)", "Kết hợp M1–M6 với trọng số tự cập nhật sau mỗi kỳ theo thành tích gần đây (thuật toán Hedge).": "Сочетание M1–M6 с весами, которые сами обновляются после каждого тиража по недавним результатам (алгоритм Hedge).", "Học máy (hồi quy logistic)": "Машинное обучение (логистическая регрессия)", "Mô hình hồi quy logistic học trực tuyến sau mỗi kỳ: dự đoán khả năng xuất hiện của từng số từ tần suất gần đây, tần suất có trọng số, khoảng cách từ lần về cuối, tần suất toàn bộ và mức đi cùng kỳ trước.": "Модель логистической регрессии дообучается после каждого тиража: оценивает вероятность каждого числа по недавней частоте, частоте с затуханием, паузе с последнего выпадения, общей частоте и связи с прошлым тиражом.", "Vé cân bằng": "Сбалансированный билет", "Vé ngẫu nhiên có cấu trúc điển hình: tổng nằm giữa 25%–75% các kỳ trước, 2–4 số lẻ, 2–4 số nhỏ, không quá 2 số liên tiếp.": "Случайный билет типичной структуры: сумма в средних 50% прошлых тиражей, 2–4 нечётных, 2–4 малых, не больше 2 подряд.", "Số ít người chọn": "Числа, которые редко выбирают люди", "Ưu tiên số lớn hơn 31 (ngoài ngày sinh) và tránh dãy/mẫu dễ đoán. Không tăng xác suất trúng, nhưng nếu trúng độc đắc thì ít người phải chia giải hơn.": "Больше чисел выше 31 (не даты рождения), без рядов и очевидных узоров. Шанс не растёт, но при джекпоте делить выигрыш придётся с меньшим числом людей.", "Phủ bộ vé": "Покрытие набора", "Chọn các số ít xuất hiện nhất trong vé của các phương pháp khác cùng kỳ, để cả bộ vé phủ nhiều số hơn. Không đổi xác suất của từng vé; chỉ tăng nhẹ khả năng có ít nhất một vé trúng 3 số.": "Берёт числа, которых меньше всего в билетах других методов этого тиража, чтобы набор покрывал больше чисел. Шанс отдельного билета не меняется; чуть растёт шанс, что хоть один билет угадает 3.", "Vé live được ghi vào CSDL chỉ-ghi-thêm TRƯỚC giờ quay; CSDL từ chối mọi vé ghi sau giờ quay.": "Live-билеты записываются в неизменяемую базу ДО тиража; база отклоняет любой билет после начала тиража.", "Mỗi vé, dù chọn bằng phương pháp nào, đều có cùng xác suất trúng như vé ngẫu nhiên. Bảng trên đo xem phương pháp có khác ngẫu nhiên trong quá khứ hay không; kết quả quá khứ không bảo đảm tương lai.": "Любой билет, каким бы методом он ни выбран, имеет тот же шанс, что и случайный. Таблица показывает, отличался ли метод от случайного в прошлом; прошлое не гарантирует будущее.", "Vercel Cron chạy 2 lần/ngày: ~19:45 (sau giờ quay) và ~07:00 (thu thập lại kết quả công bố muộn). Mỗi lần: thu thập → đối chiếu → chấm vé live → ghi vé kỳ tới → giả thuyết → báo cáo; sao lưu + thử khôi phục mỗi ngày một lần.": "Vercel Cron запускается 2 раза в день: ~19:45 (после тиража) и ~07:00 (повторный сбор поздних результатов). Каждый раз: сбор → сверка → проверка live-билетов → билеты на следующий тираж → гипотезы → отчёты; бэкап и проверка восстановления раз в сутки.", "</b> (quay ": "</b> (розыгрыш ", "Mọi giả thuyết đều được lưu, kể cả thất bại. «Xác nhận» chỉ khi đạt trên validation sau hiệu chỉnh Benjamini–Hochberg VÀ lặp lại trên bộ test niêm phong (mỗi phiên bản chỉ chạy một lần).": "Все гипотезы сохраняются, включая неудачные. «Подтверждена» только если прошла validation с поправкой Бенджамини–Хохберга И повторилась на запечатанном тесте (каждая версия запускается один раз)."};
+const T = s => (LANG === "ru" && RU[s] !== undefined) ? RU[s] : s;
+const tx = e => { // giải thích vé: phần mô tả + (M8) trọng số
+  const k = " Trọng số hiện tại: ", i = String(e || "").indexOf(k);
+  return i < 0 ? T(e) : T(e.slice(0, i)) + (LANG === "ru" ? " Текущие веса: " : k) + e.slice(i + k.length);
+};
+document.documentElement.lang = LANG;
+document.querySelectorAll("[data-lang]").forEach(b => { b.classList.toggle("on", b.dataset.lang === LANG);
+  b.onclick = () => { localStorage.setItem("vlab_lang", b.dataset.lang); location.reload(); }; });
+if (LANG === "ru") {
+  document.getElementById("sub").textContent = "Исследовательская лаборатория Mega 6/45 и Power 6/55: честно измеряем, отличается ли какой-нибудь метод от случайного выбора.";
+  document.getElementById("disc").innerHTML = "Xổ số là ngẫu nhiên. Không phương pháp nào đảm bảo trúng thưởng.<br><span style='font-weight:400'>Лотерея случайна. Ни один метод не гарантирует выигрыш.</span>";
+}
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const GN = {mega645: "Mega 6/45", power655: "Power 6/55"};
 const MAXN = {mega645: 45, power655: 55};
-const RUN = {success: "thành công", partial: "một phần", failed: "lỗi", skipped: "bỏ qua"};
-const JOBN = {ingest: "Thu thập", live: "Vé live", research: "Giả thuyết", report: "Báo cáo", backup: "Sao lưu"};
+const RUN = {success: T("thành công"), partial: T("một phần"), failed: T("lỗi"), skipped: T("bỏ qua")};
+const JOBN = {ingest: T("Thu thập"), live: T("Vé live"), research: T("Giả thuyết"), report: T("Báo cáo"), backup: T("Sao lưu")};
 const pad = n => String(n).padStart(2, "0");
 const nf = n => Number(n).toLocaleString("vi-VN");
 const pct = p => { const x = p * 100; return (x < 0.01 ? x.toExponential(2) : x.toFixed(x < 1 ? 3 : 2)) + "%"; };
-const fmtTime = t => t ? new Date(t).toLocaleString("vi-VN", {timeZone: "Asia/Ho_Chi_Minh"}) : "—";
+const fmtTime = t => t ? new Date(t).toLocaleString(LANG === "ru" ? "ru-RU" : "vi-VN", {timeZone: "Asia/Ho_Chi_Minh"}) : "—";
 const balls = (a, hit) => (a || []).map(n => "<span class='ball" + (hit && hit.includes(n) ? " h" : "") + "'>" + pad(n) + "</span>").join("");
-const err = j => '<span class="bad">' + esc(j.error_vi || "Lỗi") + "</span>";
+const err = j => '<span class="bad">' + esc(j.error_vi || T("Lỗi")) + "</span>";
 
 const cache = {};
 async function api(url, fresh) {
   if (!fresh && cache[url]) return cache[url];
-  const p = fetch(url).then(async r => ({ok: r.ok, j: await r.json().catch(() => ({error_vi: "Phản hồi không hợp lệ (" + r.status + ")"}))}));
+  const p = fetch(url).then(async r => ({ok: r.ok, j: await r.json().catch(() => ({error_vi: T("Phản hồi không hợp lệ (") + r.status + ")"}))}));
   cache[url] = p;
   const res = await p;
   if (!res.ok) delete cache[url];
@@ -81,20 +96,20 @@ async function api(url, fresh) {
 }
 
 const PAGES = [
-  ["tong-quan", "1. Tổng quan", pOverview],
-  ["du-doan-mega", "2. Dự đoán Mega 6/45", () => pPredict("mega645")],
-  ["du-doan-power", "3. Dự đoán Power 6/55", () => pPredict("power655")],
-  ["lich-su-du-doan", "4. Lịch sử dự đoán", pPredHistory],
-  ["lich-su-ket-qua", "5. Lịch sử kết quả", pResults],
-  ["doi-chieu", "6. Đối chiếu dự đoán và kết quả", pCompare],
-  ["thuat-toan", "7. Phòng thí nghiệm thuật toán", pBacktest],
-  ["tu-hoc", "8. Trung tâm thử nghiệm và tự học", pLab],
-  ["kien-thuc", "9. Kho kiến thức", pKB],
-  ["nguon", "10. Nguồn dữ liệu và trạng thái kiểm chứng", pSources],
-  ["bieu-do", "11. Biểu đồ hiệu quả", pCharts],
-  ["tu-dong", "12. Cài đặt tự động hóa", pAutoSettings],
-  ["nhat-ky", "13. Nhật ký hoạt động và lỗi", pLog],
-  ["sao-luu", "14. Sao lưu và xuất dữ liệu", pBackup],
+  ["tong-quan", T("1. Tổng quan"), pOverview],
+  ["du-doan-mega", T("2. Dự đoán Mega 6/45"), () => pPredict("mega645")],
+  ["du-doan-power", T("3. Dự đoán Power 6/55"), () => pPredict("power655")],
+  ["lich-su-du-doan", T("4. Lịch sử dự đoán"), pPredHistory],
+  ["lich-su-ket-qua", T("5. Lịch sử kết quả"), pResults],
+  ["doi-chieu", T("6. Đối chiếu dự đoán và kết quả"), pCompare],
+  ["thuat-toan", T("7. Phòng thí nghiệm thuật toán"), pBacktest],
+  ["tu-hoc", T("8. Trung tâm thử nghiệm và tự học"), pLab],
+  ["kien-thuc", T("9. Kho kiến thức"), pKB],
+  ["nguon", T("10. Nguồn dữ liệu và trạng thái kiểm chứng"), pSources],
+  ["bieu-do", T("11. Biểu đồ hiệu quả"), pCharts],
+  ["tu-dong", T("12. Cài đặt tự động hóa"), pAutoSettings],
+  ["nhat-ky", T("13. Nhật ký hoạt động và lỗi"), pLog],
+  ["sao-luu", T("14. Sao lưu và xuất dữ liệu"), pBackup],
 ];
 let game = "mega645";
 
@@ -127,7 +142,7 @@ function pAtLeast(n, m) { let s = 0; for (let j = m; j <= 6; j++) s += comb(6, j
 
 // ---------------------------------------------------------------- 1. Tổng quan
 async function pOverview() {
-  setMain(card("Tổng quan", "<div id='ov' class='note'>Đang tải…</div>"));
+  setMain(card(T("Tổng quan"), T("<div id='ov' class='note'>Đang tải…</div>")));
   const [st, lm, lp, au, ac, bm, bp] = await Promise.all([api("/api/status"), api("/api/live?game=mega645"), api("/api/live?game=power655"),
     api("/api/automation"), api("/api/acceptance"), api("/api/backtest?game=mega645"), api("/api/backtest?game=power655")]);
   if (!st.ok) { $("#ov").innerHTML = err(st.j); return; }
@@ -135,182 +150,182 @@ async function pOverview() {
   let h = "<div class='grid'>";
   for (const [g, lv, bt] of [["mega645", lm, bm], ["power655", lp, bp]]) {
     const l = st.j.latest[g], d = (st.j.counts[g] || {});
-    h += "<div class='goal'><b>" + GN[g] + "</b>Kỳ mới nhất: " + (l ? l.draw_no + " (" + esc(l.draw_date) + ")" : "—") + "<br>";
+    h += "<div class='goal'><b>" + GN[g] + T("</b>Kỳ mới nhất: ") + (l ? l.draw_no + " (" + esc(l.draw_date) + ")" : "—") + "<br>";
     for (const [k, v] of Object.entries(d)) h += "<span class='st " + k.replace(" ", "-") + "'>" + k + "</span> " + v + " ";
     const up = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result) : null;
     const last = lv.ok && lv.j.draws ? lv.j.draws.find(x => x.result) : null;
-    h += "<div style='margin-top:6px'>" + (up ? "Vé cho kỳ <b>" + up.draw_no + "</b> (quay " + fmtTime(up.draw_at) + "): đã ghi " + up.tickets.length + " vé"
-          : "Vé kỳ tới: sẽ ghi ở lần chạy kế tiếp") + "</div>";
-    if (last) { const best = Math.max(...last.tickets.map(t => t.hits ?? 0)); h += "<div>Đối chiếu gần nhất: kỳ " + last.draw_no + ", vé tốt nhất trúng " + best + " số</div>"; }
+    h += "<div style='margin-top:6px'>" + (up ? T("Vé cho kỳ <b>") + up.draw_no + T("</b> (quay ") + fmtTime(up.draw_at) + T("): đã ghi ") + up.tickets.length + T(" vé")
+          : T("Vé kỳ tới: sẽ ghi ở lần chạy kế tiếp")) + "</div>";
+    if (last) { const best = Math.max(...last.tickets.map(t => t.hits ?? 0)); h += T("<div>Đối chiếu gần nhất: kỳ ") + last.draw_no + T(", vé tốt nhất trúng ") + best + T(" số</div>"); }
     if (bt.ok && bt.j.methods) {
       const good = bt.j.methods.filter(m => m.verdict_vi.startsWith("TỐT"));
-      h += "<div class='note'>" + (good.length ? "Khác ngẫu nhiên có ý nghĩa: " + good.map(m => m.code).join(", ") : "Không phương pháp nào tốt hơn ngẫu nhiên (kiểm định trên " + nf(bt.j.methods[0].draws) + " kỳ).") + "</div>";
+      h += "<div class='note'>" + (good.length ? T("Khác ngẫu nhiên có ý nghĩa: ") + good.map(m => m.code).join(", ") : T("Không phương pháp nào tốt hơn ngẫu nhiên (kiểm định trên ") + nf(bt.j.methods[0].draws) + T(" kỳ).")) + "</div>";
     }
-    h += "<a href='#" + (g === "mega645" ? "du-doan-mega" : "du-doan-power") + "'>Xem dự đoán →</a></div>";
+    h += "<a href='#" + (g === "mega645" ? "du-doan-mega" : "du-doan-power") + T("'>Xem dự đoán →</a></div>");
   }
   h += "</div>";
   const it = st.j.integrity;
-  h += "<div style='margin-top:10px'>Toàn vẹn dữ liệu: " + (it.ok ? "<span class='ok'>đúng</span>" : "<span class='bad'>PHÁT HIỆN SAI LỆCH</span>") + "</div>";
-  if (au.ok && au.j.ready) h += "<div class='chips'>Lần thành công gần nhất: " + Object.entries(au.j.last_ok).map(([n, t]) => "<span><b>" + (JOBN[n] || n) + "</b> " + fmtTime(t) + "</span>").join("") + "</div>";
+  h += T("<div style='margin-top:10px'>Toàn vẹn dữ liệu: ") + (it.ok ? T("<span class='ok'>đúng</span>") : T("<span class='bad'>PHÁT HIỆN SAI LỆCH</span>")) + "</div>";
+  if (au.ok && au.j.ready) h += T("<div class='chips'>Lần thành công gần nhất: ") + Object.entries(au.j.last_ok).map(([n, t]) => "<span><b>" + (JOBN[n] || n) + "</b> " + fmtTime(t) + "</span>").join("") + "</div>";
   $("#ov").innerHTML = h;
   if (ac.ok && ac.j.ready) {
     const s = ac.j.summary;
-    let a = "<div class='note'>Kiểm tra lúc " + fmtTime(ac.j.checked_at) + ": <span class='ok'>ĐẠT " + s["ĐẠT"] + "</span> · <span class='wait'>ĐANG CHỜ " + s["ĐANG CHỜ"]
-          + "</span> · <span class='bad'>CHƯA ĐẠT " + s["CHƯA ĐẠT"] + "</span></div><table><tr><th>#</th><th>Tiêu chí</th><th>Kết quả</th><th>Bằng chứng</th></tr>";
+    let a = T("<div class='note'>Kiểm tra lúc ") + fmtTime(ac.j.checked_at) + T(": <span class='ok'>ĐẠT ") + s["ĐẠT"] + T("</span> · <span class='wait'>ĐANG CHỜ ") + s["ĐANG CHỜ"]
+          + T("</span> · <span class='bad'>CHƯA ĐẠT ") + s["CHƯA ĐẠT"] + T("</span></div><table><tr><th>#</th><th>Tiêu chí</th><th>Kết quả</th><th>Bằng chứng</th></tr>");
     for (const i of ac.j.items) {
       const c = i.status === "ĐẠT" ? "ok" : i.status === "ĐANG CHỜ" ? "wait" : "bad";
-      a += "<tr><td>" + i.no + "</td><td>" + esc(i.title_vi) + "</td><td class='" + c + "'><b>" + i.status + "</b></td><td class='note'>" + esc(i.evidence_vi) + "</td></tr>";
+      a += "<tr><td>" + i.no + "</td><td>" + esc(T(i.title_vi)) + "</td><td class='" + c + "'><b>" + T(i.status) + "</b></td><td class='note'>" + esc(i.evidence_vi) + "</td></tr>";
     }
-    $("#main").insertAdjacentHTML("beforeend", card("Nghiệm thu 14 mục (kiểm tra trực tiếp trên CSDL)", "<div class='scroll'>" + a + "</table></div>"));
+    $("#main").insertAdjacentHTML("beforeend", card(T("Nghiệm thu 14 mục (kiểm tra trực tiếp trên CSDL)"), "<div class='scroll'>" + a + "</table></div>"));
   }
 }
 
 // ---------------------------------------------------------------- 2–3. Dự đoán
 async function pPredict(g) {
-  setMain(card("Dự đoán " + GN[g], "<div id='pr' class='note'>Đang tải…</div>",
-    "Mỗi phương pháp ghi một vé cho kỳ tới TRƯỚC giờ quay (CSDL từ chối vé ghi muộn). Vé được ghi ngay sau khi có kết quả kỳ trước: 3 kỳ mỗi tuần cho mỗi trò chơi."));
+  setMain(card(T("Dự đoán ") + GN[g], T("<div id='pr' class='note'>Đang tải…</div>"),
+    T("Mỗi phương pháp ghi một vé cho kỳ tới TRƯỚC giờ quay (CSDL từ chối vé ghi muộn). Vé được ghi ngay sau khi có kết quả kỳ trước: 3 kỳ mỗi tuần cho mỗi trò chơi.")));
   const [lv, bt] = await Promise.all([api("/api/live?game=" + g), api("/api/backtest?game=" + g)]);
   if (!lv.ok) { $("#pr").innerHTML = err(lv.j); return; }
   const up = (lv.j.draws || []).find(x => !x.result);
   let h = "";
-  if (!up) h += "<div>Vé cho kỳ tới sẽ được ghi ở lần chạy kế tiếp (sau khi có kết quả kỳ vừa quay).</div>";
+  if (!up) h += T("<div>Vé cho kỳ tới sẽ được ghi ở lần chạy kế tiếp (sau khi có kết quả kỳ vừa quay).</div>");
   else {
-    h += "<div style='font-size:16px;margin-top:6px'>Kỳ <b>" + up.draw_no + "</b> · quay lúc <b>" + fmtTime(up.draw_at) + "</b> · vé ghi lúc " + fmtTime(up.created_at) + "</div><table><tr><th>Phương pháp</th><th>Vé</th><th>Giải thích</th></tr>";
-    for (const t of up.tickets) h += "<tr><td><b>" + t.code + "</b></td><td>" + balls(t.numbers) + "</td><td class='note'>" + esc(t.explanation_vi) + "</td></tr>";
-    h += "</table><div id='sc' class='note'>Đang tính xác suất của cả bộ vé…</div>";
+    h += T("<div style='font-size:16px;margin-top:6px'>Kỳ <b>") + up.draw_no + T("</b> · quay lúc <b>") + fmtTime(up.draw_at) + T("</b> · vé ghi lúc ") + fmtTime(up.created_at) + T("</div><table><tr><th>Phương pháp</th><th>Vé</th><th>Giải thích</th></tr>");
+    for (const t of up.tickets) h += "<tr><td><b>" + t.code + "</b></td><td>" + balls(t.numbers) + "</td><td class='note'>" + esc(tx(t.explanation_vi)) + "</td></tr>";
+    h += T("</table><div id='sc' class='note'>Đang tính xác suất của cả bộ vé…</div>");
   }
   const o = lv.j.goal_odds;
   if (o) {
-    h += "<div style='margin-top:12px'><b>Xác suất của MỘT vé bất kỳ</b> (mọi phương pháp như nhau)</div><div class='goals'>";
-    for (const k of ["6", "5", "4", "3"]) h += "<div class='goal'><span class='note'>" + (k === "6" ? "Độc đắc" : "Đúng " + k + " số") + "</span><b>1 trên " + nf(o[k].one_in) + "</b><span class='note'>" + pct(o[k].p) + "</span></div>";
+    h += T("<div style='margin-top:12px'><b>Xác suất của MỘT vé bất kỳ</b> (mọi phương pháp như nhau)</div><div class='goals'>");
+    for (const k of ["6", "5", "4", "3"]) h += "<div class='goal'><span class='note'>" + (k === "6" ? T("Độc đắc") : T("Đúng ") + k + T(" số")) + T("</span><b>1 trên ") + nf(o[k].one_in) + "</b><span class='note'>" + pct(o[k].p) + "</span></div>";
     h += "</div>";
   }
-  if (bt.ok && bt.j.learn_weights) h += "<div class='note' style='margin-top:10px'>Trọng số tự học M8: " + Object.entries(bt.j.learn_weights).map(([c, w]) => c + " " + (w * 100).toFixed(1) + "%").join(" · ") + "</div>";
-  h += "<div class='warn'>Chọn số bằng phương pháp nào thì xác suất trúng của mỗi vé vẫn như vé ngẫu nhiên. Bảng kiểm định ở mục 7 cho thấy chưa phương pháp nào khác ngẫu nhiên.</div>";
+  if (bt.ok && bt.j.learn_weights) h += T("<div class='note' style='margin-top:10px'>Trọng số tự học M8: ") + Object.entries(bt.j.learn_weights).map(([c, w]) => c + " " + (w * 100).toFixed(1) + "%").join(" · ") + "</div>";
+  h += T("<div class='warn'>Chọn số bằng phương pháp nào thì xác suất trúng của mỗi vé vẫn như vé ngẫu nhiên. Bảng kiểm định ở mục 7 cho thấy chưa phương pháp nào khác ngẫu nhiên.</div>");
   $("#pr").innerHTML = h;
   if (up) setTimeout(() => {
     const n = MAXN[g], uniq = [...new Map(up.tickets.map(t => [t.numbers.join(","), t.numbers])).values()];
     const s = setChance(uniq, n), r3 = 1 - Math.pow(1 - pAtLeast(n, 3), s.k), r4 = 1 - Math.pow(1 - pAtLeast(n, 4), s.k);
     const p5 = s.k * pAtLeast(n, 5), p6 = s.k / comb(n, 6);
-    $("#sc").innerHTML = "<div style='margin-top:10px'><b>Cả bộ " + s.k + " vé khác nhau</b> (ít nhất một vé đạt), so với " + s.k + " vé ngẫu nhiên:</div><div class='goals'>"
-      + "<div class='goal'><span class='note'>Từ 3 số</span><b>" + pct(s.p3) + "</b><span class='note'>ngẫu nhiên: " + pct(r3) + "</span></div>"
-      + "<div class='goal'><span class='note'>Từ 4 số</span><b>" + pct(s.p4) + "</b><span class='note'>1 trên " + nf(Math.round(1 / Math.max(s.p4, 1e-9))) + " · ngẫu nhiên: " + pct(r4) + "</span></div>"
-      + "<div class='goal'><span class='note'>Từ 5 số</span><b>1 trên " + nf(Math.round(1 / p5)) + "</b><span class='note'>ngẫu nhiên: như nhau</span></div>"
-      + "<div class='goal'><span class='note'>Độc đắc</span><b>1 trên " + nf(Math.round(1 / p6)) + "</b><span class='note'>ngẫu nhiên: như nhau</span></div></div>"
-      + "<div class='note'>3+ và 4+: mô phỏng 200 000 kỳ quay (sai số khoảng ±0,2 điểm %); 5+ và độc đắc: công thức chính xác/xấp xỉ.</div>";
+    $("#sc").innerHTML = T("<div style='margin-top:10px'><b>Cả bộ ") + s.k + T(" vé khác nhau</b> (ít nhất một vé đạt), so với ") + s.k + T(" vé ngẫu nhiên:</div><div class='goals'>")
+      + T("<div class='goal'><span class='note'>Từ 3 số</span><b>") + pct(s.p3) + T("</b><span class='note'>ngẫu nhiên: ") + pct(r3) + "</span></div>"
+      + T("<div class='goal'><span class='note'>Từ 4 số</span><b>") + pct(s.p4) + T("</b><span class='note'>1 trên ") + nf(Math.round(1 / Math.max(s.p4, 1e-9))) + T(" · ngẫu nhiên: ") + pct(r4) + "</span></div>"
+      + T("<div class='goal'><span class='note'>Từ 5 số</span><b>1 trên ") + nf(Math.round(1 / p5)) + T("</b><span class='note'>ngẫu nhiên: như nhau</span></div>")
+      + T("<div class='goal'><span class='note'>Độc đắc</span><b>1 trên ") + nf(Math.round(1 / p6)) + T("</b><span class='note'>ngẫu nhiên: như nhau</span></div></div>")
+      + T("<div class='note'>3+ và 4+: mô phỏng 200 000 kỳ quay (sai số khoảng ±0,2 điểm %); 5+ và độc đắc: công thức chính xác/xấp xỉ.</div>");
   }, 30);
 }
 
 // ---------------------------------------------------------------- 4. Lịch sử dự đoán
 function liveDraw(d) {
-  let h = "<div style='margin-top:12px'><b>Kỳ " + d.draw_no + "</b> · quay " + fmtTime(d.draw_at) + " · vé ghi " + fmtTime(d.created_at) + "<br>"
-    + (d.result ? "Kết quả: " + balls(d.result) + (d.bonus != null ? " <span class='ball b'>" + pad(d.bonus) + "</span>" : "") : "<span class='note'>Chưa quay / chưa có kết quả</span>") + "</div><table>";
+  let h = T("<div style='margin-top:12px'><b>Kỳ ") + d.draw_no + T("</b> · quay ") + fmtTime(d.draw_at) + T(" · vé ghi ") + fmtTime(d.created_at) + "<br>"
+    + (d.result ? T("Kết quả: ") + balls(d.result) + (d.bonus != null ? " <span class='ball b'>" + pad(d.bonus) + "</span>" : "") : T("<span class='note'>Chưa quay / chưa có kết quả</span>")) + "</div><table>";
   for (const t of d.tickets) {
-    const hit = t.hits == null ? "—" : t.hits + " số" + (t.bonus_hit ? " + ĐB" : "") + (t.prize_tier ? " · " + t.prize_tier : "");
-    h += "<tr title='" + esc(t.explanation_vi) + "'><td><b>" + t.code + "</b></td><td>" + balls(t.numbers, d.result) + "</td><td>" + hit + "</td></tr>";
+    const hit = t.hits == null ? "—" : t.hits + T(" số") + (t.bonus_hit ? T(" + ĐB") : "") + (t.prize_tier ? " · " + t.prize_tier : "");
+    h += "<tr title='" + esc(tx(t.explanation_vi)) + "'><td><b>" + t.code + "</b></td><td>" + balls(t.numbers, d.result) + "</td><td>" + hit + "</td></tr>";
   }
   return h + "</table>";
 }
 async function pPredHistory() {
-  setMain(card("Lịch sử dự đoán", gameTabs(pPredHistory) + "<div id='ph' class='note'>Đang tải…</div>", "Mọi vé live đã ghi, kể cả vé chưa quay. Không vé nào bị sửa hay xóa."));
+  setMain(card(T("Lịch sử dự đoán"), gameTabs(pPredHistory) + T("<div id='ph' class='note'>Đang tải…</div>"), T("Mọi vé live đã ghi, kể cả vé chưa quay. Không vé nào bị sửa hay xóa.")));
   const {ok, j} = await api("/api/live?game=" + game + "&limit=200");
   if (!ok) { $("#ph").innerHTML = err(j); return; }
-  $("#ph").innerHTML = j.draws.length ? j.draws.map(liveDraw).join("") : "Chưa có vé live.";
+  $("#ph").innerHTML = j.draws.length ? j.draws.map(liveDraw).join("") : T("Chưa có vé live.");
 }
 
 // ---------------------------------------------------------------- 5. Lịch sử kết quả
 async function pResults() {
-  setMain(card("Lịch sử kết quả", gameTabs(pResults) + "<div id='rs' class='note'>Đang tải…</div>"));
+  setMain(card(T("Lịch sử kết quả"), gameTabs(pResults) + T("<div id='rs' class='note'>Đang tải…</div>")));
   const {ok, j} = await api("/api/draws?game=" + game + "&limit=200");
   if (!ok) { $("#rs").innerHTML = err(j); return; }
-  if (!j.ready || !j.rows.length) { $("#rs").textContent = "Chưa có dữ liệu."; return; }
-  let h = "<div class='scroll'><table><tr><th>Kỳ</th><th>Ngày</th><th>Bộ số</th><th>Trạng thái</th></tr>";
+  if (!j.ready || !j.rows.length) { $("#rs").textContent = T("Chưa có dữ liệu."); return; }
+  let h = T("<div class='scroll'><table><tr><th>Kỳ</th><th>Ngày</th><th>Bộ số</th><th>Trạng thái</th></tr>");
   for (const r of j.rows) {
     const b = balls(r.main_numbers) + (r.bonus_number != null ? " <span class='ball b'>" + pad(r.bonus_number) + "</span>" : "");
     h += "<tr title='" + esc(r.reason_vi) + "'><td>" + r.draw_no + "</td><td>" + esc(r.draw_date || "") + "</td><td>" + (b || "—") + "</td><td><span class='st " + r.status.replace(" ", "-") + "'>" + r.status + "</span></td></tr>";
   }
-  $("#rs").innerHTML = h + "</table></div><div class='note'>200 kỳ gần nhất. Toàn bộ: mục 14 (xuất CSV/JSON).</div>";
+  $("#rs").innerHTML = h + T("</table></div><div class='note'>200 kỳ gần nhất. Toàn bộ: mục 14 (xuất CSV/JSON).</div>");
 }
 
 // ---------------------------------------------------------------- 6. Đối chiếu
 async function pCompare() {
-  setMain(card("Đối chiếu dự đoán và kết quả", gameTabs(pCompare) + "<div id='cp' class='note'>Đang tải…</div>"));
+  setMain(card(T("Đối chiếu dự đoán và kết quả"), gameTabs(pCompare) + T("<div id='cp' class='note'>Đang tải…</div>")));
   const {ok, j} = await api("/api/live?game=" + game + "&limit=200");
   if (!ok) { $("#cp").innerHTML = err(j); return; }
   const sc = j.stats.filter(s => s.scored), done = j.draws.filter(d => d.result);
   let h = "";
-  if (!sc.length) h += "<div>Chưa có kỳ nào được đối chiếu: vé live đầu tiên sẽ được chấm ngay sau kỳ quay đầu tiên.</div>";
+  if (!sc.length) h += T("<div>Chưa có kỳ nào được đối chiếu: vé live đầu tiên sẽ được chấm ngay sau kỳ quay đầu tiên.</div>");
   else {
-    h += "<table><tr><th>Phương pháp</th><th>Vé đã chấm</th><th>TB số trúng</th><th>Từ 3 số (thực tế / kỳ vọng ngẫu nhiên)</th><th>Từ 4 số</th></tr>";
-    for (const s of sc) h += "<tr><td><b>" + s.code + "</b> " + esc(s.name_vi) + "</td><td>" + s.scored + "</td><td>" + s.mean_hits + " <span class='note'>(ngẫu nhiên " + s.random_mean_hits + ")</span></td><td>"
+    h += T("<table><tr><th>Phương pháp</th><th>Vé đã chấm</th><th>TB số trúng</th><th>Từ 3 số (thực tế / kỳ vọng ngẫu nhiên)</th><th>Từ 4 số</th></tr>");
+    for (const s of sc) h += "<tr><td><b>" + s.code + "</b> " + esc(T(s.name_vi)) + "</td><td>" + s.scored + "</td><td>" + s.mean_hits + T(" <span class='note'>(ngẫu nhiên ") + s.random_mean_hits + ")</span></td><td>"
       + s.goals["3"].actual + " / " + s.goals["3"].expected + "</td><td>" + s.goals["4"].actual + " / " + s.goals["4"].expected + "</td></tr>";
     h += "</table>";
   }
-  h += done.map(liveDraw).join("") + "<div class='note'>" + esc(j.note_vi) + "</div>";
+  h += done.map(liveDraw).join("") + "<div class='note'>" + esc(T(j.note_vi)) + "</div>";
   $("#cp").innerHTML = h;
 }
 
 // ---------------------------------------------------------------- 7. Thuật toán
-const GOAL = {"6": "Độc đắc", "5": "Từ 5 số", "4": "Từ 4 số", "3": "Từ 3 số"};
+const GOAL = {"6": T("Độc đắc"), "5": T("Từ 5 số"), "4": T("Từ 4 số"), "3": T("Từ 3 số")};
 async function pBacktest() {
-  setMain(card("Phòng thí nghiệm thuật toán", gameTabs(pBacktest) + "<div id='bt' class='note'>Đang tính… (lần đầu có thể mất vài giây)</div>",
-    "Walk-forward: với mỗi kỳ, phương pháp chỉ được nhìn các kỳ trước đó. Chỉ dùng kỳ VERIFIED / CROSS-CHECKED."));
+  setMain(card(T("Phòng thí nghiệm thuật toán"), gameTabs(pBacktest) + T("<div id='bt' class='note'>Đang tính… (lần đầu có thể mất vài giây)</div>"),
+    T("Walk-forward: với mỗi kỳ, phương pháp chỉ được nhìn các kỳ trước đó. Chỉ dùng kỳ VERIFIED / CROSS-CHECKED.")));
   const g = game, {ok, j} = await api("/api/backtest?game=" + g);
   if (!ok) { $("#bt").innerHTML = err(j); return; }
-  if (!j.ready || !j.methods) { $("#bt").textContent = "Chưa có dữ liệu."; return; }
-  let h = "<div style='margin-top:6px'>" + GN[g] + ": " + nf(j.draws_used) + " kỳ (" + j.first_draw + "–" + j.last_draw + "), " + j.warmup + " kỳ đầu chỉ để học → chấm trên " + nf(j.methods[0].draws) + " kỳ.</div>";
-  h += "<div class='scroll'><table><tr><th>Phương pháp</th><th>TB số trúng / vé</th>";
-  for (const k of ["3", "4", "5", "6"]) h += "<th>" + GOAL[k] + "<br>thực tế / kỳ vọng</th>";
-  h += "<th>Kết luận</th></tr>";
+  if (!j.ready || !j.methods) { $("#bt").textContent = T("Chưa có dữ liệu."); return; }
+  let h = "<div style='margin-top:6px'>" + GN[g] + ": " + nf(j.draws_used) + T(" kỳ (") + j.first_draw + "–" + j.last_draw + "), " + j.warmup + T(" kỳ đầu chỉ để học → chấm trên ") + nf(j.methods[0].draws) + T(" kỳ.</div>");
+  h += T("<div class='scroll'><table><tr><th>Phương pháp</th><th>TB số trúng / vé</th>");
+  for (const k of ["3", "4", "5", "6"]) h += "<th>" + GOAL[k] + T("<br>thực tế / kỳ vọng</th>");
+  h += T("<th>Kết luận</th></tr>");
   for (const m of j.methods) {
     const c = m.verdict_vi.startsWith("TỐT") ? "ok" : m.verdict_vi.startsWith("KÉM") ? "bad" : "";
-    h += "<tr><td title='" + esc(m.description_vi) + "'><b>" + m.code + "</b> " + esc(m.name_vi) + "</td><td>" + m.mean_hits.toFixed(3) + " <span class='note'>(ngẫu nhiên " + m.random_mean_hits.toFixed(3) + ")</span></td>";
+    h += "<tr><td title='" + esc(T(m.description_vi)) + "'><b>" + m.code + "</b> " + esc(T(m.name_vi)) + "</td><td>" + m.mean_hits.toFixed(3) + T(" <span class='note'>(ngẫu nhiên ") + m.random_mean_hits.toFixed(3) + ")</span></td>";
     for (const k of ["3", "4", "5", "6"]) { const x = m.goals[k]; h += "<td>" + x.actual + " / " + x.expected + "<br><span class='note'>" + pct(x.actual_rate) + " vs " + pct(x.random_rate) + "</span></td>"; }
-    h += "<td class='" + c + "'>" + esc(m.verdict_vi) + "<br><span class='note'>p = " + m.p_value + "</span></td></tr>";
+    h += "<td class='" + c + "'>" + esc(T(m.verdict_vi)) + "<br><span class='note'>p = " + m.p_value + "</span></td></tr>";
   }
-  h += "</table></div><div class='note'>Kiểm định z cho số trúng trung bình, hiệu chỉnh Bonferroni cho " + j.bonferroni_tests + " phương pháp (α = " + j.alpha + ").</div><div class='warn'>" + esc(j.note_vi) + "</div>";
+  h += T("</table></div><div class='note'>Kiểm định z cho số trúng trung bình, hiệu chỉnh Bonferroni cho ") + j.bonferroni_tests + T(" phương pháp (α = ") + j.alpha + ").</div><div class='warn'>" + esc(T(j.note_vi)) + "</div>";
   $("#bt").innerHTML = h;
 }
 
 // ---------------------------------------------------------------- 8. Tự học
-const HST = {proposed: "đề xuất", testing: "đang kiểm", rejected: "bác bỏ", supported_on_validation: "đạt validation", confirmed_on_test: "XÁC NHẬN"};
+const HST = {proposed: T("đề xuất"), testing: T("đang kiểm"), rejected: T("bác bỏ"), supported_on_validation: T("đạt validation"), confirmed_on_test: T("XÁC NHẬN")};
 async function pLab() {
-  setMain(card("Trung tâm thử nghiệm và tự học", gameTabs(pLab) + "<div id='lab' class='note'>Đang tải…</div>",
-    "Giả thuyết được kiểm trên 60% dữ liệu đầu (dev), quyết định trên 20% tiếp (validation, Benjamini–Hochberg), 20% cuối (test niêm phong) chỉ dùng một lần. Thất bại cũng được lưu."));
+  setMain(card(T("Trung tâm thử nghiệm và tự học"), gameTabs(pLab) + T("<div id='lab' class='note'>Đang tải…</div>"),
+    T("Giả thuyết được kiểm trên 60% dữ liệu đầu (dev), quyết định trên 20% tiếp (validation, Benjamini–Hochberg), 20% cuối (test niêm phong) chỉ dùng một lần. Thất bại cũng được lưu.")));
   const g = game, [rs, bt] = await Promise.all([api("/api/research?game=" + g), api("/api/backtest?game=" + g)]);
   if (!rs.ok) { $("#lab").innerHTML = err(rs.j); return; }
   const j = rs.j;
   let h = "";
-  if (bt.ok && bt.j.learn_weights) h += "<div style='margin-top:6px'><b>Trọng số tự học M8</b>: " + Object.entries(bt.j.learn_weights).map(([c, w]) => c + " " + (w * 100).toFixed(1) + "%").join(" · ") + "</div>";
-  if (!j.ready || !j.n_tested) { $("#lab").innerHTML = h + "<div>Chưa có giả thuyết.</div>"; return; }
-  h += "<div style='margin-top:6px'>Đã kiểm <b>" + j.n_tested + "</b> giả thuyết, xác nhận <b>" + j.n_confirmed + "</b>, thất bại " + j.n_failed + ".</div><div class='scroll'><table><tr><th>Giả thuyết</th><th>Kết quả</th><th>Trạng thái</th></tr>";
+  if (bt.ok && bt.j.learn_weights) h += T("<div style='margin-top:6px'><b>Trọng số tự học M8</b>: ") + Object.entries(bt.j.learn_weights).map(([c, w]) => c + " " + (w * 100).toFixed(1) + "%").join(" · ") + "</div>";
+  if (!j.ready || !j.n_tested) { $("#lab").innerHTML = h + T("<div>Chưa có giả thuyết.</div>"); return; }
+  h += T("<div style='margin-top:6px'>Đã kiểm <b>") + j.n_tested + T("</b> giả thuyết, xác nhận <b>") + j.n_confirmed + T("</b>, thất bại ") + j.n_failed + T(".</div><div class='scroll'><table><tr><th>Giả thuyết</th><th>Kết quả</th><th>Trạng thái</th></tr>");
   for (const r of j.hypotheses) {
     const c = r.status === "confirmed_on_test" ? "ok" : r.status === "rejected" ? "bad" : "";
-    h += "<tr title='" + esc(r.principle_vi) + "'><td>" + esc(r.title_vi) + "</td><td>" + esc(r.result_summary_vi || "") + "</td><td class='" + c + "'>" + (HST[r.status] || r.status) + "<br><span class='note'>" + esc(r.status_note_vi || "") + "</span></td></tr>";
+    h += "<tr title='" + esc(r.principle_vi) + "'><td>" + esc(T(r.title_vi)) + "</td><td>" + esc(r.result_summary_vi || "") + "</td><td class='" + c + "'>" + (HST[r.status] || r.status) + "<br><span class='note'>" + esc(r.status_note_vi || "") + "</span></td></tr>";
   }
-  $("#lab").innerHTML = h + "</table></div><div class='note'>" + esc(j.note_vi) + "</div>";
+  $("#lab").innerHTML = h + "</table></div><div class='note'>" + esc(T(j.note_vi)) + "</div>";
 }
 
 // ---------------------------------------------------------------- 9. Kho kiến thức
-const SRC = {official: "chính thức", paper: "bài báo khoa học", article: "bài viết", internal: "thí nghiệm nội bộ"};
+const SRC = {official: T("chính thức"), paper: T("bài báo khoa học"), article: T("bài viết"), internal: T("thí nghiệm nội bộ")};
 async function pKB(q) {
   q = typeof q === "string" ? q : "";
-  setMain(card("Kho kiến thức", "<div class='row' style='margin-top:8px'><input id='kq' class='q' placeholder='Tìm: Benjamini, số lạnh, Power…' value='" + esc(q) + "'><button id='ks' class='sec'>Tìm</button></div><div id='kb' class='note'>Đang tải…</div>"));
+  setMain(card(T("Kho kiến thức"), T("<div class='row' style='margin-top:8px'><input id='kq' class='q' placeholder='Tìm: Benjamini, số lạnh, Power…' value='") + esc(q) + T("'><button id='ks' class='sec'>Tìm</button></div><div id='kb' class='note'>Đang tải…</div>")));
   $("#ks").onclick = () => pKB($("#kq").value);
   $("#kq").onkeydown = e => { if (e.key === "Enter") pKB($("#kq").value); };
   const {ok, j} = await api("/api/knowledge?q=" + encodeURIComponent(q));
   if (!ok) { $("#kb").innerHTML = err(j); return; }
-  let h = "<div style='margin-top:6px'>" + j.total + " tài liệu" + (j.q ? " · kết quả cho «" + esc(j.q) + "»: " + j.docs.length : "") + "</div><table>";
+  let h = "<div style='margin-top:6px'>" + j.total + T(" tài liệu") + (j.q ? T(" · kết quả cho «") + esc(j.q) + "»: " + j.docs.length : "") + "</div><table>";
   for (const d of j.docs) {
     const t = d.url ? "<a href='" + esc(d.url) + "' target='_blank' rel='noopener'>" + esc(d.title) + "</a>" : esc(d.title);
-    h += "<tr><td><b>" + t + "</b><br><span class='note'>" + (SRC[d.source_type] || d.source_type) + " · độ tin cậy " + d.authority_score + "/5</span><br>" + esc(d.summary_vi) + "</td></tr>";
+    h += "<tr><td><b>" + t + "</b><br><span class='note'>" + (SRC[d.source_type] || d.source_type) + T(" · độ tin cậy ") + d.authority_score + "/5</span><br>" + esc(d.summary_vi) + "</td></tr>";
   }
   $("#kb").innerHTML = h + "</table>";
 }
 
 // ---------------------------------------------------------------- 10. Nguồn
 async function pSources() {
-  setMain(card("Nguồn dữ liệu và trạng thái kiểm chứng", "<div id='src' class='note'>Đang tải…</div>"));
+  setMain(card(T("Nguồn dữ liệu và trạng thái kiểm chứng"), T("<div id='src' class='note'>Đang tải…</div>")));
   const {ok, j} = await api("/api/status");
   if (!ok) { $("#src").innerHTML = err(j); return; }
   let h = "";
@@ -319,13 +334,13 @@ async function pSources() {
     for (const [k, v] of Object.entries(j.counts[g] || {})) h += "<span><span class='st " + k.replace(" ", "-") + "'>" + k + "</span> " + v + "</span>";
     h += "</div>";
   }
-  h += "<table><tr><td><span class='st VERIFIED'>VERIFIED</span></td><td>Nguồn chính thức vietlott.vn khớp với ít nhất một kho lưu trữ độc lập.</td></tr>"
-    + "<tr><td><span class='st CROSS-CHECKED'>CROSS-CHECKED</span></td><td>Ít nhất hai kho lưu trữ độc lập khớp nhau, chưa có xác nhận trực tiếp từ nguồn chính thức.</td></tr>"
-    + "<tr><td><span class='st NOT-PROVEN'>NOT PROVEN</span></td><td>Chỉ một nhóm nguồn gốc; chưa dùng trong tính toán.</td></tr>"
-    + "<tr><td><span class='st CONFLICT'>CONFLICT</span></td><td>Các nguồn mâu thuẫn; kỳ này bị loại khỏi mọi tính toán.</td></tr>"
-    + "<tr><td><span class='st PENDING'>PENDING</span></td><td>Theo lịch đã quay nhưng chưa nguồn nào công bố kết quả.</td></tr></table>";
-  h += "<div class='warn'>vietlott.vn chặn máy chủ đặt ngoài Việt Nam (HTTP 403), nên hiện tại các kỳ chỉ đạt CROSS-CHECKED.</div>";
-  if (j.runs.length) h += "<details open><summary>Báo cáo thu thập gần nhất · " + fmtTime(j.runs[0].finished_at) + "</summary><pre>" + esc(j.runs[0].summary_vi) + "</pre></details>";
+  h += T("<table><tr><td><span class='st VERIFIED'>VERIFIED</span></td><td>Nguồn chính thức vietlott.vn khớp với ít nhất một kho lưu trữ độc lập.</td></tr>")
+    + T("<tr><td><span class='st CROSS-CHECKED'>CROSS-CHECKED</span></td><td>Ít nhất hai kho lưu trữ độc lập khớp nhau, chưa có xác nhận trực tiếp từ nguồn chính thức.</td></tr>")
+    + T("<tr><td><span class='st NOT-PROVEN'>NOT PROVEN</span></td><td>Chỉ một nhóm nguồn gốc; chưa dùng trong tính toán.</td></tr>")
+    + T("<tr><td><span class='st CONFLICT'>CONFLICT</span></td><td>Các nguồn mâu thuẫn; kỳ này bị loại khỏi mọi tính toán.</td></tr>")
+    + T("<tr><td><span class='st PENDING'>PENDING</span></td><td>Theo lịch đã quay nhưng chưa nguồn nào công bố kết quả.</td></tr></table>");
+  h += T("<div class='warn'>vietlott.vn chặn máy chủ đặt ngoài Việt Nam (HTTP 403), nên hiện tại các kỳ chỉ đạt CROSS-CHECKED.</div>");
+  if (j.runs.length) h += T("<details open><summary>Báo cáo thu thập gần nhất · ") + fmtTime(j.runs[0].finished_at) + "</summary><pre>" + esc(j.runs[0].summary_vi) + "</pre></details>";
   $("#src").innerHTML = h;
 }
 
@@ -338,74 +353,74 @@ function bars(rows, ref, fmt, title) {
     s += "<text x='0' y='" + (y + 15) + "' font-size='12'>" + esc(r.label) + "</text><rect x='90' y='" + (y + 3) + "' width='" + Math.max(1, x(r.v) - 90) + "' height='16' rx='4' fill='#818cf8'/>"
        + "<text x='" + (x(r.v) + 4) + "' y='" + (y + 15) + "' font-size='11' fill='#475467'>" + fmt(r.v) + "</text>";
   });
-  s += "<line x1='" + x(ref) + "' x2='" + x(ref) + "' y1='22' y2='" + (H - 4) + "' stroke='#dc2626' stroke-dasharray='4 3'/><text x='" + (x(ref) + 3) + "' y='" + (H - 6) + "' font-size='11' fill='#dc2626'>ngẫu nhiên " + fmt(ref) + "</text></svg>";
+  s += "<line x1='" + x(ref) + "' x2='" + x(ref) + "' y1='22' y2='" + (H - 4) + "' stroke='#dc2626' stroke-dasharray='4 3'/><text x='" + (x(ref) + 3) + "' y='" + (H - 6) + T("' font-size='11' fill='#dc2626'>ngẫu nhiên ") + fmt(ref) + "</text></svg>";
   return s;
 }
 async function pCharts() {
-  setMain(card("Biểu đồ hiệu quả", gameTabs(pCharts) + "<div id='ch' class='note'>Đang tính…</div>", "Đường đỏ: mức kỳ vọng của vé ngẫu nhiên. Thanh dài hơn chưa chắc là tốt hơn: xem kết luận thống kê ở mục 7."));
+  setMain(card(T("Biểu đồ hiệu quả"), gameTabs(pCharts) + T("<div id='ch' class='note'>Đang tính…</div>"), T("Đường đỏ: mức kỳ vọng của vé ngẫu nhiên. Thanh dài hơn chưa chắc là tốt hơn: xem kết luận thống kê ở mục 7.")));
   const {ok, j} = await api("/api/backtest?game=" + game);
   if (!ok) { $("#ch").innerHTML = err(j); return; }
-  if (!j.methods) { $("#ch").textContent = "Chưa có dữ liệu."; return; }
+  if (!j.methods) { $("#ch").textContent = T("Chưa có dữ liệu."); return; }
   const ms = j.methods;
-  let h = bars(ms.map(m => ({label: m.code, v: m.mean_hits})), ms[0].random_mean_hits, v => v.toFixed(3), "Số trúng trung bình mỗi vé (" + nf(ms[0].draws) + " kỳ)");
-  h += bars(ms.map(m => ({label: m.code, v: m.goals["3"].actual_rate})), ms[0].goals["3"].random_rate, v => (v * 100).toFixed(2) + "%", "Tỷ lệ vé đạt từ 3 số");
-  h += bars(ms.map(m => ({label: m.code, v: m.goals["4"].actual_rate})), ms[0].goals["4"].random_rate, v => (v * 100).toFixed(3) + "%", "Tỷ lệ vé đạt từ 4 số");
+  let h = bars(ms.map(m => ({label: m.code, v: m.mean_hits})), ms[0].random_mean_hits, v => v.toFixed(3), T("Số trúng trung bình mỗi vé (") + nf(ms[0].draws) + T(" kỳ)"));
+  h += bars(ms.map(m => ({label: m.code, v: m.goals["3"].actual_rate})), ms[0].goals["3"].random_rate, v => (v * 100).toFixed(2) + "%", T("Tỷ lệ vé đạt từ 3 số"));
+  h += bars(ms.map(m => ({label: m.code, v: m.goals["4"].actual_rate})), ms[0].goals["4"].random_rate, v => (v * 100).toFixed(3) + "%", T("Tỷ lệ vé đạt từ 4 số"));
   $("#ch").innerHTML = h;
 }
 
 // ---------------------------------------------------------------- 12. Tự động hóa
 async function pAutoSettings() {
-  setMain(card("Cài đặt tự động hóa", "<div id='as' class='note'>Đang tải…</div>"));
+  setMain(card(T("Cài đặt tự động hóa"), T("<div id='as' class='note'>Đang tải…</div>")));
   const {ok, j} = await api("/api/automation");
   if (!ok) { $("#as").innerHTML = err(j); return; }
-  let h = "<div style='margin-top:6px'>" + esc(j.schedule_vi) + "</div><table><tr><th>Lịch</th><th>Giờ Việt Nam</th><th>Việc</th></tr>"
-    + "<tr><td>Vercel Cron /api/cron</td><td>hằng ngày ~19:45</td><td>thu thập sau giờ quay 18:00, chấm vé, ghi vé kỳ tới, giả thuyết, báo cáo</td></tr>"
-    + "<tr><td>Vercel Cron /api/cron-morning</td><td>hằng ngày ~07:00</td><td>thu thập lại kết quả công bố muộn, các bước như trên</td></tr>"
-    + "<tr><td>Sao lưu + thử khôi phục</td><td>mỗi ngày một lần (cách nhau ≥ 20 giờ)</td><td>trong lần chạy đầu tiên của ngày</td></tr>"
-    + "<tr><td>Báo cáo tuần</td><td>mỗi 7 ngày</td><td>tóm tắt kỳ, vé live, giả thuyết, tác vụ, sao lưu</td></tr>"
-    + "<tr><td>Chạy tay</td><td>bất kỳ lúc nào, cách lần trước ≥ 10 phút</td><td>nút bên dưới</td></tr></table>"
-    + "<div class='note'>Không có thông báo (theo quyết định 16.10): trang tự cập nhật sau mỗi lần chạy. Gói Vercel miễn phí có thể lệch giờ chạy trong phạm vi một giờ.</div>"
-    + "<div class='row' style='margin-top:10px'><button id='run'>Chạy thu thập ngay</button></div>";
+  let h = "<div style='margin-top:6px'>" + esc(T(j.schedule_vi)) + T("</div><table><tr><th>Lịch</th><th>Giờ Việt Nam</th><th>Việc</th></tr>")
+    + T("<tr><td>Vercel Cron /api/cron</td><td>hằng ngày ~19:45</td><td>thu thập sau giờ quay 18:00, chấm vé, ghi vé kỳ tới, giả thuyết, báo cáo</td></tr>")
+    + T("<tr><td>Vercel Cron /api/cron-morning</td><td>hằng ngày ~07:00</td><td>thu thập lại kết quả công bố muộn, các bước như trên</td></tr>")
+    + T("<tr><td>Sao lưu + thử khôi phục</td><td>mỗi ngày một lần (cách nhau ≥ 20 giờ)</td><td>trong lần chạy đầu tiên của ngày</td></tr>")
+    + T("<tr><td>Báo cáo tuần</td><td>mỗi 7 ngày</td><td>tóm tắt kỳ, vé live, giả thuyết, tác vụ, sao lưu</td></tr>")
+    + T("<tr><td>Chạy tay</td><td>bất kỳ lúc nào, cách lần trước ≥ 10 phút</td><td>nút bên dưới</td></tr></table>")
+    + T("<div class='note'>Không có thông báo (theo quyết định 16.10): trang tự cập nhật sau mỗi lần chạy. Gói Vercel miễn phí có thể lệch giờ chạy trong phạm vi một giờ.</div>")
+    + T("<div class='row' style='margin-top:10px'><button id='run'>Chạy thu thập ngay</button></div>");
   $("#as").innerHTML = h;
   $("#run").onclick = async () => {
-    const b = $("#run"); b.disabled = true; b.textContent = "Đang chạy… (tới 5 phút)";
+    const b = $("#run"); b.disabled = true; b.textContent = T("Đang chạy… (tới 5 phút)");
     const {ok, j} = await api("/api/cron?manual=1", true);
-    b.disabled = false; b.textContent = "Chạy thu thập ngay";
+    b.disabled = false; b.textContent = T("Chạy thu thập ngay");
     for (const k in cache) delete cache[k];
-    alert(ok ? [j.live_vi, j.research_vi, j.report_vi, j.backup_vi].filter(Boolean).join("\n") : (j.error_vi || "Lỗi"));
+    alert(ok ? [j.live_vi, j.research_vi, j.report_vi, j.backup_vi].filter(Boolean).join("\n") : (j.error_vi || T("Lỗi")));
   };
 }
 
 // ---------------------------------------------------------------- 13. Nhật ký
 async function pLog() {
-  setMain(card("Nhật ký hoạt động và lỗi", "<div id='lg' class='note'>Đang tải…</div>", "20 tác vụ gần nhất (job_runs, chỉ ghi thêm). Bấm vào dòng để xem chi tiết."));
+  setMain(card(T("Nhật ký hoạt động và lỗi"), T("<div id='lg' class='note'>Đang tải…</div>"), T("20 tác vụ gần nhất (job_runs, chỉ ghi thêm). Bấm vào dòng để xem chi tiết.")));
   const {ok, j} = await api("/api/automation");
   if (!ok) { $("#lg").innerHTML = err(j); return; }
   let h = "";
   for (const r of j.jobs) {
     const c = r.status === "failed" ? "bad" : r.status === "success" ? "ok" : "wait";
-    h += "<details><summary>#" + r.id + " · " + (JOBN[r.job_name] || esc(r.job_name)) + " · " + fmtTime(r.started_at) + " · " + (r.trigger === "schedule" ? "theo lịch" : r.trigger === "manual" ? "chạy tay" : esc(r.trigger))
-       + " · <span class='" + c + "'>" + (RUN[r.status] || r.status) + "</span></summary><pre>" + esc(r.summary_vi) + "</pre></details>";
+    h += "<details><summary>#" + r.id + " · " + (JOBN[r.job_name] || esc(r.job_name)) + " · " + fmtTime(r.started_at) + " · " + (r.trigger === "schedule" ? T("theo lịch") : r.trigger === "manual" ? T("chạy tay") : esc(r.trigger))
+       + T(" · <span class='") + c + "'>" + (RUN[r.status] || r.status) + "</span></summary><pre>" + esc(r.summary_vi) + "</pre></details>";
   }
-  h += "<div style='margin-top:12px'><b>Báo cáo</b></div>";
-  for (const r of j.reports) h += "<details><summary>" + (r.kind === "weekly" ? "Báo cáo tuần" : "Sau kỳ " + (GN[r.game] || "") + " " + String(r.draw_no).padStart(5, "0")) + " · " + fmtTime(r.created_at) + "</summary><pre>" + esc(r.content_vi) + "</pre></details>";
-  if (!j.reports.length) h += "<div class='note'>Chưa có báo cáo.</div>";
+  h += T("<div style='margin-top:12px'><b>Báo cáo</b></div>");
+  for (const r of j.reports) h += "<details><summary>" + (r.kind === "weekly" ? T("Báo cáo tuần") : T("Sau kỳ ") + (GN[r.game] || "") + " " + String(r.draw_no).padStart(5, "0")) + " · " + fmtTime(r.created_at) + "</summary><pre>" + esc(r.content_vi) + "</pre></details>";
+  if (!j.reports.length) h += T("<div class='note'>Chưa có báo cáo.</div>");
   $("#lg").innerHTML = h;
 }
 
 // ---------------------------------------------------------------- 14. Sao lưu
 async function pBackup() {
-  setMain(card("Sao lưu và xuất dữ liệu", "<div class='row' style='margin-top:8px'><a class='btn' href='/api/backup'>Tải bản sao lưu đầy đủ (.json.gz)</a></div>"
-    + "<div class='note'>Tệp chứa toàn bộ bảng lịch sử và băm SHA-256 của từng bảng, nên có thể kiểm tra lại bất cứ lúc nào. Nên tải về và cất ở nơi khác định kỳ.</div><div id='bk' class='note'>Đang tải…</div>")
-    + card("Xuất dữ liệu", "<div class='row' style='margin-top:8px'><a class='btn sec' href='/api/export?kind=draws&format=csv'>Kết quả (CSV)</a><a class='btn sec' href='/api/export?kind=draws&format=json'>Kết quả (JSON)</a>"
-    + "<a class='btn sec' href='/api/export?kind=history&format=csv'>Lịch sử phiên bản</a><a class='btn sec' href='/api/export?kind=observations&format=csv'>Quan sát từ các nguồn</a><a class='btn sec' href='/api/export?kind=conflicts&format=csv'>Xung đột</a></div>",
-    "Toàn bộ lịch sử chỉ được ghi thêm, không bao giờ sửa hay xóa."));
+  setMain(card(T("Sao lưu và xuất dữ liệu"), T("<div class='row' style='margin-top:8px'><a class='btn' href='/api/backup'>Tải bản sao lưu đầy đủ (.json.gz)</a></div>")
+    + T("<div class='note'>Tệp chứa toàn bộ bảng lịch sử và băm SHA-256 của từng bảng, nên có thể kiểm tra lại bất cứ lúc nào. Nên tải về và cất ở nơi khác định kỳ.</div><div id='bk' class='note'>Đang tải…</div>"))
+    + card(T("Xuất dữ liệu"), T("<div class='row' style='margin-top:8px'><a class='btn sec' href='/api/export?kind=draws&format=csv'>Kết quả (CSV)</a><a class='btn sec' href='/api/export?kind=draws&format=json'>Kết quả (JSON)</a>")
+    + T("<a class='btn sec' href='/api/export?kind=history&format=csv'>Lịch sử phiên bản</a><a class='btn sec' href='/api/export?kind=observations&format=csv'>Quan sát từ các nguồn</a><a class='btn sec' href='/api/export?kind=conflicts&format=csv'>Xung đột</a></div>"),
+    T("Toàn bộ lịch sử chỉ được ghi thêm, không bao giờ sửa hay xóa.")));
   const {ok, j} = await api("/api/automation");
   if (!ok) { $("#bk").innerHTML = err(j); return; }
-  let h = "<table><tr><th>Bản</th><th>Thử khôi phục</th></tr>";
-  for (const b of j.backups) h += "<tr><td>#" + b.id + " · " + fmtTime(b.created_at) + " · " + Math.round(b.size_bytes / 1024) + " KB<br><span class='note'>sha256 " + esc(b.sha256.slice(0, 16)) + "…</span></td><td class='" + (b.restore_ok ? "ok" : "bad") + "'>"
-    + (b.restore_ok ? "ĐẠT" : "KHÔNG ĐẠT") + "<br><span class='note'>" + esc(b.details_vi) + "</span></td></tr>";
-  if (!j.backups.length) h += "<tr><td colspan='2'>Chưa có bản sao lưu.</td></tr>";
+  let h = T("<table><tr><th>Bản</th><th>Thử khôi phục</th></tr>");
+  for (const b of j.backups) h += "<tr><td>#" + b.id + " · " + fmtTime(b.created_at) + " · " + Math.round(b.size_bytes / 1024) + " KB<br><span class='note'>sha256 " + esc(b.sha256.slice(0, 16)) + T("…</span></td><td class='") + (b.restore_ok ? "ok" : "bad") + "'>"
+    + (b.restore_ok ? T("ĐẠT") : T("KHÔNG ĐẠT")) + "<br><span class='note'>" + esc(b.details_vi) + "</span></td></tr>";
+  if (!j.backups.length) h += T("<tr><td colspan='2'>Chưa có bản sao lưu.</td></tr>");
   $("#bk").innerHTML = h + "</table>";
 }
 
