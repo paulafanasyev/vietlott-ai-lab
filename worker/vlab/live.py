@@ -15,7 +15,7 @@ import json
 from datetime import datetime, timezone
 
 from .games import GAMES
-from .methods import BASE, CODES, FAMILY, METHODS, PARAMS, State, all_tickets, learn_weights
+from .methods import BASE, CODES, FAMILY, METHOD_PARAMS, METHODS, State, all_tickets, learn_weights
 from .schedule import VN_TZ, next_draw_after
 
 USABLE = ("VERIFIED", "CROSS-CHECKED")
@@ -44,8 +44,8 @@ def prize_tier(game: str, hits: int, bonus_hit: bool | None) -> str | None:
 def ensure_methods(cur, git_sha: str) -> dict[str, int]:
     """Trả về {mã: id phiên bản hiện hành}."""
     out = {}
-    params = _j(PARAMS)
     for m in METHODS:
+        params = _j(METHOD_PARAMS[m.code])
         cur.execute("""INSERT INTO methods (code, name_vi, family, description_vi) VALUES (%s,%s,%s,%s)
                        ON CONFLICT (code) DO NOTHING""", (m.code, m.name_vi, FAMILY[m.code], m.description_vi))
         cur.execute("SELECT id FROM methods WHERE code = %s", (m.code,))
