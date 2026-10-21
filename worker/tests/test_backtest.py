@@ -88,6 +88,8 @@ class Backtest(unittest.TestCase):
         self.assertGreater(w["M1"] + w["M2"] + w["M5"], 0.9, w)
         m9 = next(m for m in res["methods"] if m["code"] == "M9")  # học máy cũng phải học được độ lệch thật
         self.assertTrue(m9["verdict_vi"].startswith("TỐT HƠN"), m9)
+        m16 = next(m for m in res["methods"] if m["code"] == "M16")  # bỏ phiếu tự học dồn phiếu cho phương pháp tốt
+        self.assertTrue(m16["verdict_vi"].startswith("TỐT HƠN"), m16)
 
     def test_new_methods_rules(self):
         st = State(45)
@@ -97,5 +99,8 @@ class Backtest(unittest.TestCase):
         self.assertGreaterEqual(sum(1 for x in tk["M11"] if x > 31), 4)
         others = {x for c, t in tk.items() if c != "M12" for x in t}
         self.assertGreaterEqual(len(set(tk["M12"]) - others), min(6, 45 - len(others)))
+        from vlab.methods import vote_weights
+        self.assertAlmostEqual(sum(vote_weights(st).values()), 1.0, places=6)
+        self.assertEqual(len(st.gaps[1]) > 0, True)
         t10 = tk["M10"]
         self.assertTrue(2 <= sum(x % 2 for x in t10) <= 4)

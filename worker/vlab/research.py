@@ -35,6 +35,10 @@ KIND_VI = {
     "hot_lowhigh": "Số nóng {W} kỳ, cân bằng 3 nhỏ / 3 lớn",
     "avoid_last": "Số nóng {W} kỳ, bỏ các số của kỳ vừa quay",
     "pairs_last": "Số hay đi cùng các số của kỳ vừa quay",
+    "repeat_last": "Lặp lại các số của kỳ vừa quay",
+    "neighbours_last": "Số liền kề (±1) các số của kỳ vừa quay",
+    "hot_decay_mix": "Kết hợp số nóng {W} kỳ với tần suất giảm dần (bán rã {H} kỳ)",
+    "hot_spread": "Số nóng {W} kỳ, mỗi vùng số một số",
 }
 PRINCIPLE_VI = {
     "hot": "Nếu máy quay có thiên lệch ngắn hạn, các số về nhiều gần đây sẽ tiếp tục về nhiều hơn.",
@@ -46,6 +50,10 @@ PRINCIPLE_VI = {
     "hot_lowhigh": "Kết hợp xu hướng nóng với cơ cấu nhỏ/lớn phổ biến nhất.",
     "avoid_last": "Số vừa về ít khả năng về lại ngay kỳ sau.",
     "pairs_last": "Có các cặp số hay xuất hiện cùng nhau.",
+    "repeat_last": "Nếu máy quay có «quán tính», các số vừa về sẽ về lại nhiều hơn ngẫu nhiên.",
+    "neighbours_last": "Bi gần nhau trong lồng quay có thể về theo cụm số liền kề.",
+    "hot_decay_mix": "Trung bình thứ hạng của hai tín hiệu nóng (cửa sổ cố định và giảm dần) bền hơn từng tín hiệu riêng.",
+    "hot_spread": "Chia dãy số thành 6 vùng đều nhau, mỗi vùng lấy số nóng nhất, để tránh dồn số vào một vùng.",
 }
 
 CATALOG = [
@@ -54,6 +62,8 @@ CATALOG = [
     {"kind": "overdue"}, {"kind": "decay", "H": 10}, {"kind": "decay", "H": 50},
     {"kind": "hot_parity", "W": 30}, {"kind": "hot_lowhigh", "W": 30}, {"kind": "avoid_last", "W": 30},
     {"kind": "pairs_last"},
+    {"kind": "repeat_last"}, {"kind": "neighbours_last"}, {"kind": "hot_decay_mix", "W": 30, "H": 10},
+    {"kind": "hot_spread", "W": 30},
 ]
 
 
@@ -154,6 +164,20 @@ def ticket_for(spec: dict, f: _Feats, rng: random.Random) -> tuple[int, ...]:
         w = f.win[spec["W"]]
         half = n // 2
         pick = _top(w, [x for x in allx if x <= half], 3, jit) + _top(w, [x for x in allx if x > half], 3, jit)
+        return tuple(sorted(pick))
+    elif kind == "repeat_last":
+        s = [(1000 if x in f.last else 0) + f.total[x] for x in range(n + 1)]
+    elif kind == "neighbours_last":
+        near = {y for x in f.last for y in (x - 1, x + 1) if 1 <= y <= n and y not in f.last}
+        s = [(1000 if x in near else 0) + f.total[x] for x in range(n + 1)]
+    elif kind == "hot_decay_mix":
+        w, d = f.win[spec["W"]], f.dec[spec["H"]]
+        rw = {x: r for r, x in enumerate(_top(w, list(allx), n, jit))}
+        rd = {x: r for r, x in enumerate(_top(d, list(allx), n, jit))}
+        s = [0] + [-(rw[x] + rd[x]) for x in allx]
+    elif kind == "hot_spread":
+        w = f.win[spec["W"]]
+        pick = [_top(w, [x for x in allx if (x - 1) * 6 // n == b], 1, jit)[0] for b in range(6)]
         return tuple(sorted(pick))
     else:
         raise KeyError(kind)
