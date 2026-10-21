@@ -48,12 +48,24 @@ METHODS: tuple[Method, ...] = (
     Method("M12", "Phủ bộ vé",
            "Chọn các số ít xuất hiện nhất trong vé của các phương pháp khác cùng kỳ, để cả bộ vé phủ nhiều số hơn. "
            "Không đổi xác suất của từng vé; chỉ tăng nhẹ khả năng có ít nhất một vé trúng 3 số."),
+    Method("M13", "Chuỗi Markov (lặp lại kỳ trước)",
+           "Ước lượng xác suất mỗi số về kỳ tới tùy theo nó có về ở kỳ vừa quay hay không (chuỗi Markov 2 trạng thái)."),
+    Method("M14", "Lấy mẫu Bayes (Thompson)",
+           "Mỗi số có phân phối hậu nghiệm Gamma theo số lần đã về; rút ngẫu nhiên từ hậu nghiệm và chọn 6 số cao nhất."),
+    Method("M15", "Chu kỳ riêng của từng số",
+           "Với khoảng cách hiện tại từ lần về cuối, tính tỷ lệ «về ngay ở khoảng cách này» theo lịch sử riêng của từng số."),
+    Method("M16", "Bỏ phiếu tự học (M1–M15)",
+           "Mỗi phương pháp bỏ phiếu cho 6 số của mình; phiếu có trọng số tự cập nhật sau mỗi kỳ theo thành tích gần đây (Hedge)."),
 )
 BASE = ("M1", "M2", "M3", "M4", "M5", "M6")
 FAMILY = {"M0": "random", "M1": "statistics", "M2": "statistics", "M3": "statistics", "M4": "statistics",
           "M5": "timeseries", "M6": "statistics", "M7": "ensemble", "M8": "ensemble",
-          "M9": "ml", "M10": "montecarlo", "M11": "statistics", "M12": "coverage"}
+          "M9": "ml", "M10": "montecarlo", "M11": "statistics", "M12": "coverage",
+          "M13": "timeseries", "M14": "montecarlo", "M15": "timeseries", "M16": "ensemble"}
 CODES = tuple(m.code for m in METHODS)
+# M16: các phương pháp được bỏ phiếu (không gồm M0 ngẫu nhiên, các tổ hợp M7/M8/M12/M16).
+VOTERS = ("M1", "M2", "M3", "M4", "M5", "M6", "M9", "M10", "M11", "M13", "M14", "M15")
+EXTRA = tuple(c for c in VOTERS if c not in BASE)
 
 
 class State:
@@ -78,6 +90,12 @@ class State:
         # M9: hồi quy logistic dùng chung cho mọi số, học trực tuyến (SGD) trước khi ghi nhận mỗi kỳ.
         self.ml_w = [0.0] * (ML_FEATURES + 1)
         self.sums: list[int] = []
+        # M13: đếm chuyển trạng thái (về/không về ở kỳ trước → về/không về ở kỳ này).
+        self.mk = [[0, 0, 0, 0] for _ in range(max_number + 1)]  # [lần ở trạng thái «vừa về», trong đó về lại, «không về», trong đó về]
+        # M15: phân bố khoảng cách giữa hai lần về của từng số.
+        self.gaps = [dict() for _ in range(max_number + 1)]
+        # M16: điểm tự học cho các phương pháp ngoài BASE (BASE dùng learn_score như M8).
+        self.ext_score = {c: 0.0 for c in EXTRA}
 
     def add(self, draw: Draw) -> None:
         t = len(self.history)
@@ -90,6 +108,24 @@ class State:
                 self.learn_hits[c] += hits
                 self.learn_score[c] = self.learn_score[c] * self.learn_decay + (hits - mu)
         actual = set(draw)
+        if self.history:
+            mu = 36 / self.n
+            for c in EXTRA:
+                hits = len(actual.intersection(ticket(self, c, f"learn|{t}")))
+                self.ext_score[c] = self.ext_score[c] * self.learn_decay + (hits - mu)
+            prev = set(self.history[-1])
+            for x in range(1, self.n + 1):
+                m = self.mk[x]
+                if x in prev:
+                    m[0] += 1
+                    m[1] += x in actual
+                else:
+                    m[2] += 1
+                    m[3] += x in actual
+        for x in draw:
+            if self.last_seen[x] >= 0:
+                g = t - self.last_seen[x]
+                self.gaps[x][g] = self.gaps[x].get(g, 0) + 1
         if len(self.history) >= 10:
             fm = self.feature_matrix()
             grad = [0.0] * len(self.ml_w)
@@ -162,6 +198,22 @@ class State:
             return [float(sum(self.pairs[x][y] for y in last)) if x not in last else -1.0 for x in range(n + 1)]
         if code == "M9":
             return self.ml_scores()
+        if code == "M13":
+            last = set(self.history[-1]) if self.history else set()
+            out = [0.0]
+            for x in range(1, n + 1):
+                m = self.mk[x]
+                out.append((m[1] + 1) / (m[0] + 2) if x in last else (m[3] + 1) / (m[2] + 2))
+            return out
+        if code == "M15":
+            out = [0.0]
+            for x in range(1, n + 1):
+                cur = (t - self.last_seen[x]) if self.last_seen[x] >= 0 else t
+                h = self.gaps[x]
+                at = h.get(cur, 0)
+                later = sum(v for g, v in h.items() if g >= cur)
+                out.append((at + 0.5) / (later + 0.5 * cur + 1.0))
+            return out
         raise KeyError(code)
 
 
@@ -170,6 +222,15 @@ def learn_weights(state: State) -> dict[str, float]:
     raw = {c: math.exp(state.learn_rate * (v - m)) for c, v in state.learn_score.items()}
     total = sum(raw.values())
     return {c: raw[c] / total for c in BASE}
+
+
+def vote_weights(state: State) -> dict[str, float]:
+    """Trọng số Hedge trên M1–M15 (điểm BASE dùng chung với M8)."""
+    sc = {**{c: state.learn_score[c] for c in BASE}, **state.ext_score}
+    m = max(sc.values())
+    raw = {c: math.exp(state.learn_rate * (sc[c] - m)) for c in VOTERS}
+    total = sum(raw.values())
+    return {c: raw[c] / total for c in VOTERS}
 
 
 def _rng(seed_key: str) -> random.Random:
@@ -203,6 +264,15 @@ def ticket(state: State, code: str, seed_key: str) -> tuple[int, ...]:
         return _balanced(state, rng)
     if code == "M11":
         return _unpopular(state, rng)
+    if code == "M14":
+        return _top6([0.0] + [rng.gammavariate(state.total[x] + 1.0, 1.0) for x in range(1, n + 1)], n, rng)
+    if code == "M16":
+        w = vote_weights(state)
+        votes = [0.0] * (n + 1)
+        for c in VOTERS:
+            for x in ticket(state, c, f"{seed_key}|vote"):
+                votes[x] += w[c]
+        return _top6(votes, n, rng)
     if code == "M12":
         raise ValueError("M12 cần vé của các phương pháp khác: dùng all_tickets()")
     return _top6(state.scores(code), n, rng)
@@ -272,4 +342,8 @@ METHOD_PARAMS["M9"].update({"ml_rate": ML_RATE, "ml_l2": ML_L2,
                             "ml_features": ["recent50", "weighted", "gap", "total", "pairs_last"], "standardize": "z"})
 METHOD_PARAMS["M10"].update({"sum_band": "p25-p75", "odd": [2, 4], "low": [2, 4], "max_run": 2})
 METHOD_PARAMS["M11"].update({"over31": 4, "max_run": 1})
-METHOD_PARAMS["M12"].update({"coverage_of": "M0-M11"})
+METHOD_PARAMS["M12"].update({"coverage_of": "all_other"})
+METHOD_PARAMS["M13"].update({"markov_states": 2, "laplace": 1})
+METHOD_PARAMS["M14"].update({"prior": "gamma(1,1)", "posterior": "gamma(total+1,1)"})
+METHOD_PARAMS["M15"].update({"hazard_smoothing": 0.5})
+METHOD_PARAMS["M16"].update({"voters": list(VOTERS), "weights": "hedge"})
