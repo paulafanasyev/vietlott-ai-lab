@@ -90,7 +90,7 @@ def run_backtest(game_code: str, max_number: int, draws: list[tuple[int, tuple[i
                 r.draws += 1
                 r.hits_sum += hits
                 r.counts[hits] += 1
-        state.add(tuple(nums))
+        state.add(tuple(nums), seed_key=f"{game_code}|{draw_no}")
     n_tests = len(CODES) - 1
     next_no = draws[-1][0] + 1 if draws else 1
     tickets = all_tickets(state, f"{game_code}|{next_no}") if draws else {}
