@@ -127,6 +127,8 @@ class Backtest(unittest.TestCase):
         self.assertTrue(m8["verdict_vi"].startswith("TỐT HƠN"), m8)
         w = res["learn_weights"]
         self.assertGreater(w["M1"] + w["M2"] + w["M5"], 0.9, w)
+        m14 = next(m for m in res["methods"] if m["code"] == "M14")  # Thompson Beta phải nhận ra độ lệch thật
+        self.assertTrue(m14["verdict_vi"].startswith("TỐT HƠN"), m14)
         m9 = next(m for m in res["methods"] if m["code"] == "M9")  # học máy cũng phải học được độ lệch thật
         self.assertTrue(m9["verdict_vi"].startswith("TỐT HƠN"), m9)
         m16 = next(m for m in res["methods"] if m["code"] == "M16")  # bỏ phiếu tự học dồn phiếu cho phương pháp tốt
