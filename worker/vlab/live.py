@@ -47,9 +47,7 @@ def ensure_methods(cur, git_sha: str) -> dict[str, int]:
     for m in METHODS:
         params = _j(METHOD_PARAMS[m.code])
         cur.execute("""INSERT INTO methods (code, name_vi, family, description_vi) VALUES (%s,%s,%s,%s)
-                       ON CONFLICT (code) DO UPDATE SET name_vi = EXCLUDED.name_vi,
-                           family = EXCLUDED.family, description_vi = EXCLUDED.description_vi""",
-                    (m.code, m.name_vi, FAMILY[m.code], m.description_vi))
+                       ON CONFLICT (code) DO NOTHING""", (m.code, m.name_vi, FAMILY[m.code], m.description_vi))
         cur.execute("SELECT id FROM methods WHERE code = %s", (m.code,))
         mid = cur.fetchone()[0]
         cur.execute("""SELECT id, version, params FROM method_versions WHERE method_id = %s
