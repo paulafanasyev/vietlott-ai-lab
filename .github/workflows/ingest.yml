@@ -1,11 +1,7 @@
-# Скопировать в .github/workflows/ingest.yml. Секреты репозитория: DATABASE_URL (роль-владелец, только
-# для migrate) и DATABASE_URL_WORKER (роль с правами vlab_app: только SELECT/INSERT).
+# Секреты: DATABASE_URL (роль-владелец для migrate), DATABASE_URL_WORKER (vlab_worker, член vlab_app).
 name: "Thu thập kết quả"
 on:
   schedule:
-    # Время UTC. Тиражи в 18:00 по Вьетнаму = 11:00 UTC; результаты обычно к 18:30.
-    # Запуск ЕЖЕДНЕВНЫЙ намеренно: 6 игровых дней из 7 есть тираж (Mega Ср/Пт/Вс, Power Вт/Чт/Сб), а в
-    # остальные запуски ловятся поздние публикации, исправления в архивах и повторные попытки после ошибок.
     - cron: "30 12 * * *"   # 19:30 ICT
     - cron: "0 14 * * *"    # 21:00 ICT
     - cron: "0 16 * * *"    # 23:00 ICT
@@ -38,6 +34,10 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m vlab migrate
+      - name: "Kiểm tra quyền kết nối worker (không hiển thị bí mật)"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_WORKER }}
+        run: python -m vlab.preflight
       - name: "Thu thập và đối chiếu"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_WORKER }}
