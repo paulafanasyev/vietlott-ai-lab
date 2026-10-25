@@ -72,7 +72,7 @@ class State:
     """Trạng thái tăng dần: cập nhật sau mỗi kỳ, để walk-forward chạy O(kỳ × N)."""
 
     def __init__(self, max_number: int, window: int = 50, half_life: float = 30.0,
-                 learn_half_life: float = 50.0, learn_rate: float = 0.5):
+                 learn_half_life: float = 50.0, learn_rate: float = 0.05):
         self.n = max_number
         # Tự học: điểm của mỗi phương pháp cơ sở = tổng (số trúng − kỳ vọng ngẫu nhiên), giảm dần theo thời gian.
         self.learn_decay = 0.5 ** (1.0 / learn_half_life)
@@ -338,7 +338,7 @@ def all_tickets(state: State, seed_key: str) -> dict[str, tuple[int, ...]]:
     return {code: out[code] for code in CODES}
 
 
-PARAMS = {"window": 50, "half_life": 30.0, "learn_half_life": 50.0, "learn_rate": 0.5, "algo": 1}
+PARAMS = {"window": 50, "half_life": 30.0, "learn_half_life": 50.0, "learn_rate": 0.05, "algo": 2}
 # Tham số riêng của từng phương pháp (M0–M8 giữ nguyên PARAMS nên không sinh phiên bản mới).
 METHOD_PARAMS = {c: dict(PARAMS) for c in CODES}
 METHOD_PARAMS["M9"].update({"ml_rate": ML_RATE, "ml_l2": ML_L2,
