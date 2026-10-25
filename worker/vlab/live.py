@@ -171,38 +171,44 @@ def live_report(conn, game: str, limit: int = 30) -> dict:
     p = match_probs(g.max_number)
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT r.target_draw_no, r.target_draw_at, r.created_at, m.code, t.main_numbers, t.explanation_vi,
+            SELECT r.target_draw_no, r.target_draw_at, r.created_at, m.code, v.version, t.main_numbers, t.explanation_vi,
                    res.main_hits, res.bonus_hit, res.prize_tier
             FROM prediction_runs r JOIN method_versions v ON v.id = r.method_version_id
             JOIN methods m ON m.id = v.method_id JOIN tickets t ON t.run_id = r.id
             LEFT JOIN LATERAL (SELECT main_hits, bonus_hit, prize_tier FROM ticket_results x
                                WHERE x.ticket_id = t.id ORDER BY x.id DESC LIMIT 1) res ON true
-            WHERE r.purpose = 'live' AND r.game = %s ORDER BY r.target_draw_no DESC, m.code""", (game,))
+            WHERE r.purpose = 'live' AND r.game = %s
+            ORDER BY r.target_draw_no DESC, m.code, v.version DESC", (game,))
         rows = cur.fetchall()
         cur.execute("SELECT draw_no, main_numbers, bonus_number FROM draw_current WHERE game = %s AND draw_no = ANY(%s)",
                     (game, list({r[0] for r in rows})))
         actual = {n: (m, b) for n, m, b in cur.fetchall()}
     draws: dict[int, dict] = {}
-    stats = {c: {"code": c, "scored": 0, "hits_sum": 0, "goals": {"3": 0, "4": 0, "5": 0, "6": 0}} for c in CODES}
-    for target, at, created, code, nums, expl, hits, bonus_hit, tier in rows:
+    # Keep method versions separate: a newly tuned model must not be merged into
+    # the old version's score, and old immutable tickets remain visible for audit.
+    stats: dict[tuple[str, int], dict] = {}
+    names = {m.code: m.name_vi for m in METHODS}
+    for target, at, created, code, version, nums, expl, hits, bonus_hit, tier in rows:
         d = draws.setdefault(target, {"draw_no": f"{target:05d}", "draw_at": at, "created_at": created,
                                       "result": list(actual[target][0]) if target in actual and actual[target][0] else None,
                                       "bonus": actual.get(target, (None, None))[1], "tickets": []})
-        d["tickets"].append({"code": code, "numbers": list(nums), "hits": hits, "bonus_hit": bonus_hit,
-                             "prize_tier": tier, "explanation_vi": expl})
-        if hits is not None and code in stats:
-            s = stats[code]
+        d["tickets"].append({"code": code, "version": version, "numbers": list(nums), "hits": hits,
+                             "bonus_hit": bonus_hit, "prize_tier": tier, "explanation_vi": expl})
+        key = (code, version)
+        if key not in stats:
+            stats[key] = {"code": code, "version": version, "scored": 0, "hits_sum": 0,
+                          "goals": {"3": 0, "4": 0, "5": 0, "6": 0}}
+        if hits is not None and code in names:
+            s = stats[key]
             s["scored"] += 1
             s["hits_sum"] += hits
             for k in ("3", "4", "5", "6"):
                 if hits >= int(k):
                     s["goals"][k] += 1
-    names = {m.code: m.name_vi for m in METHODS}
     out_stats = []
-    for c in CODES:
-        s = stats[c]
+    for (code, version), s in sorted(stats.items(), key=lambda item: (CODES.index(item[0][0]) if item[0][0] in CODES else len(CODES), -item[0][1], item[0][0])):
         n = s["scored"]
-        out_stats.append({"code": c, "name_vi": names[c], "scored": n,
+        out_stats.append({"code": code, "version": version, "name_vi": names.get(code, code), "scored": n,
                           "mean_hits": round(s["hits_sum"] / n, 3) if n else None,
                           "random_mean_hits": round(36 / g.max_number, 3),
                           "goals": {k: {"actual": v, "expected": round(n * sum(p[j] for j in range(int(k), 7)), 3)}
