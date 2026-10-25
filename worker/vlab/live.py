@@ -178,7 +178,7 @@ def live_report(conn, game: str, limit: int = 30) -> dict:
             LEFT JOIN LATERAL (SELECT main_hits, bonus_hit, prize_tier FROM ticket_results x
                                WHERE x.ticket_id = t.id ORDER BY x.id DESC LIMIT 1) res ON true
             WHERE r.purpose = 'live' AND r.game = %s
-            ORDER BY r.target_draw_no DESC, m.code, v.version DESC", (game,))
+            ORDER BY r.target_draw_no DESC, m.code, v.version DESC""", (game,))
         rows = cur.fetchall()
         cur.execute("SELECT draw_no, main_numbers, bonus_number FROM draw_current WHERE game = %s AND draw_no = ANY(%s)",
                     (game, list({r[0] for r in rows})))
