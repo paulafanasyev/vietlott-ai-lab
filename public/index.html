@@ -230,7 +230,7 @@ function liveDraw(d) {
     + (d.result ? T("Kết quả: ") + balls(d.result) + (d.bonus != null ? " <span class='ball b'>" + pad(d.bonus) + "</span>" : "") : T("<span class='note'>Chưa quay / chưa có kết quả</span>")) + "</div><table>";
   for (const t of d.tickets) {
     const hit = t.hits == null ? "—" : t.hits + T(" số") + (t.bonus_hit ? T(" + ĐB") : "") + (t.prize_tier ? " · " + t.prize_tier : "");
-    h += "<tr title='" + esc(tx(t.explanation_vi)) + "'><td><b>" + t.code + "</b></td><td>" + balls(t.numbers, d.result) + "</td><td>" + hit + "</td></tr>";
+    h += "<tr title='" + esc(tx(t.explanation_vi)) + "'><td><b>" + t.code + " v" + t.version + "</b></td><td>" + balls(t.numbers, d.result) + "</td><td>" + hit + "</td></tr>";
   }
   return h + "</table>";
 }
@@ -265,7 +265,7 @@ async function pCompare() {
   if (!sc.length) h += T("<div>Chưa có kỳ nào được đối chiếu: vé live đầu tiên sẽ được chấm ngay sau kỳ quay đầu tiên.</div>");
   else {
     h += T("<table><tr><th>Phương pháp</th><th>Vé đã chấm</th><th>TB số trúng</th><th>Từ 3 số (thực tế / kỳ vọng ngẫu nhiên)</th><th>Từ 4 số</th></tr>");
-    for (const s of sc) h += "<tr><td><b>" + s.code + "</b> " + esc(T(s.name_vi)) + "</td><td>" + s.scored + "</td><td>" + s.mean_hits + T(" <span class='note'>(ngẫu nhiên ") + s.random_mean_hits + ")</span></td><td>"
+    for (const s of sc) h += "<tr><td><b>" + s.code + " v" + s.version + "</b> " + esc(T(s.name_vi)) + "</td><td>" + s.scored + "</td><td>" + s.mean_hits + T(" <span class='note'>(ngẫu nhiên ") + s.random_mean_hits + ")</span></td><td>"
       + s.goals["3"].actual + " / " + s.goals["3"].expected + "</td><td>" + s.goals["4"].actual + " / " + s.goals["4"].expected + "</td></tr>";
     h += "</table>";
   }
