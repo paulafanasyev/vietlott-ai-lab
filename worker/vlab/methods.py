@@ -97,21 +97,24 @@ class State:
         # M16: điểm tự học cho các phương pháp ngoài BASE (BASE dùng learn_score như M8).
         self.ext_score = {c: 0.0 for c in EXTRA}
 
-    def add(self, draw: Draw) -> None:
+    def add(self, draw: Draw, seed_key: str | None = None) -> None:
         t = len(self.history)
-        # Trước khi ghi nhận kỳ mới: chấm vé mà từng phương pháp cơ sở ĐÃ chọn cho kỳ này (chỉ dựa trên quá khứ).
+        # Use the exact seed key used when the method's ticket was generated for this draw.
+        # Otherwise keep a deterministic fallback for generic callers/tests.
+        training_key = seed_key if seed_key is not None else f"learn|{t}"
+        # Before recording this draw, score tickets selected from prior history only.
         if self.history:
             mu = 36 / self.n
             actual = set(draw)
             for c in BASE:
-                hits = len(actual.intersection(ticket(self, c, f"learn|{t}")))
+                hits = len(actual.intersection(ticket(self, c, training_key)))
                 self.learn_hits[c] += hits
                 self.learn_score[c] = self.learn_score[c] * self.learn_decay + (hits - mu)
         actual = set(draw)
         if self.history:
             mu = 36 / self.n
             for c in EXTRA:
-                hits = len(actual.intersection(ticket(self, c, f"learn|{t}")))
+                hits = len(actual.intersection(ticket(self, c, training_key)))
                 self.ext_score[c] = self.ext_score[c] * self.learn_decay + (hits - mu)
             prev = set(self.history[-1])
             for x in range(1, self.n + 1):
@@ -335,7 +338,7 @@ def all_tickets(state: State, seed_key: str) -> dict[str, tuple[int, ...]]:
     return {code: out[code] for code in CODES}
 
 
-PARAMS = {"window": 50, "half_life": 30.0, "learn_half_life": 50.0, "learn_rate": 0.5, "algo": 1}
+PARAMS = {"window": 50, "half_life": 30.0, "learn_half_life": 50.0, "learn_rate": 0.5, "algo": 2}
 # Tham số riêng của từng phương pháp (M0–M8 giữ nguyên PARAMS nên không sinh phiên bản mới).
 METHOD_PARAMS = {c: dict(PARAMS) for c in CODES}
 METHOD_PARAMS["M9"].update({"ml_rate": ML_RATE, "ml_l2": ML_L2,

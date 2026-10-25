@@ -112,8 +112,8 @@ def predict(cur, game: str, versions: dict[str, int], now: datetime) -> str:
     rows = [(int(n), tuple(int(x) for x in m)) for n, m in cur.fetchall()]
     snapshot = hashlib.sha256(_j(rows).encode()).hexdigest()
     state = State(GAMES[game].max_number)
-    for _, d in rows:
-        state.add(d)
+    for draw_no, d in rows:
+        state.add(d, seed_key=f"{game}|{draw_no}")
     tickets = all_tickets(state, f"{game}|{target}")
     weights = learn_weights(state)
     desc = {m.code: m.description_vi for m in METHODS}

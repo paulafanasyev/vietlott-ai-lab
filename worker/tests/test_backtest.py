@@ -2,7 +2,7 @@ import random
 import unittest
 
 from vlab.backtest import goal_odds, match_probs, run_backtest
-from vlab.methods import CODES, State, all_tickets
+from vlab.methods import BASE, CODES, EXTRA, State, all_tickets, ticket
 
 
 def fake_draws(n, max_number, seed=1):
@@ -42,6 +42,33 @@ class Methods(unittest.TestCase):
             for x in d:
                 expect[x] += 1
         self.assertEqual(st.recent, expect)
+
+    def test_online_learning_scores_use_the_actual_prediction_seed(self):
+        """Learning must score the same seeded tickets used by walk-forward/live prediction."""
+        draws = fake_draws(110, 45, seed=93)
+        st = State(45)
+        for draw_no, nums in draws[:100]:
+            st.add(nums, seed_key=f"mega645|{draw_no}")
+
+        draw_no, actual = draws[100]
+        key = f"mega645|{draw_no}"
+        decay = st.learn_decay
+        mu = 36 / st.n
+        expected_base = {
+            code: st.learn_score[code] * decay
+            + (len(set(actual).intersection(ticket(st, code, key))) - mu)
+            for code in BASE
+        }
+        expected_extra = {
+            code: st.ext_score[code] * decay
+            + (len(set(actual).intersection(ticket(st, code, key))) - mu)
+            for code in EXTRA
+        }
+        st.add(actual, seed_key=key)
+        for code, expected in expected_base.items():
+            self.assertAlmostEqual(st.learn_score[code], expected, places=12)
+        for code, expected in expected_extra.items():
+            self.assertAlmostEqual(st.ext_score[code], expected, places=12)
 
 
 class Backtest(unittest.TestCase):
