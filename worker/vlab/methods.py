@@ -338,7 +338,8 @@ def all_tickets(state: State, seed_key: str) -> dict[str, tuple[int, ...]]:
     return {code: out[code] for code in CODES}
 
 
-PARAMS = {"window": 50, "half_life": 30.0, "learn_half_life": 50.0, "learn_rate": 0.5, "algo": 2}
+# Bump every method fingerprint after aligning online learning with the actual seeded tickets.
+PARAMS = {"window": 50, "half_life": 30.0, "learn_half_life": 50.0, "learn_rate": 0.5, "algo": 3}
 # Tham số riêng của từng phương pháp (M0–M8 giữ nguyên PARAMS nên không sinh phiên bản mới).
 METHOD_PARAMS = {c: dict(PARAMS) for c in CODES}
 METHOD_PARAMS["M9"].update({"ml_rate": ML_RATE, "ml_l2": ML_L2,
