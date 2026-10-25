@@ -2,7 +2,7 @@ import random
 import unittest
 
 from vlab.backtest import goal_odds, match_probs, run_backtest
-from vlab.methods import BASE, CODES, EXTRA, State, all_tickets, ticket
+from vlab.methods import BASE, CODES, EXTRA, State, all_tickets, learn_weights, ticket
 
 
 def fake_draws(n, max_number, seed=1):
@@ -69,6 +69,15 @@ class Methods(unittest.TestCase):
             self.assertAlmostEqual(st.learn_score[code], expected, places=12)
         for code, expected in expected_extra.items():
             self.assertAlmostEqual(st.ext_score[code], expected, places=12)
+
+    def test_adaptive_weights_do_not_collapse_on_random_history(self):
+        """On a synthetic null history, recent noise should not give one expert near-total control."""
+        st = State(45)
+        for draw_no, nums in fake_draws(1500, 45, seed=11):
+            st.add(nums, seed_key=f"mega645|{draw_no}")
+        weights = learn_weights(st)
+        self.assertAlmostEqual(sum(weights.values()), 1.0, places=9)
+        self.assertLess(max(weights.values()), 0.6, weights)
 
 
 class Backtest(unittest.TestCase):
