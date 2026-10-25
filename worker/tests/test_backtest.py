@@ -2,7 +2,7 @@ import random
 import unittest
 
 from vlab.backtest import goal_odds, match_probs, run_backtest
-from vlab.methods import BASE, CODES, EXTRA, State, all_tickets, ticket
+from vlab.methods import BASE, CODES, EXTRA, State, all_tickets, m14_posterior_params, ticket
 
 
 def fake_draws(n, max_number, seed=1):
@@ -42,6 +42,20 @@ class Methods(unittest.TestCase):
             for x in d:
                 expect[x] += 1
         self.assertEqual(st.recent, expect)
+
+    def test_m14_beta_posterior_counts_both_appearances_and_absences(self):
+        """M14 estimates per-draw inclusion probability, not a Gamma rate based only on hits."""
+        st = State(45)
+        draws = [tuple(range(1, 7))] * 3 + [tuple(range(7, 13))] * 7
+        for draw in draws:
+            st.add(draw)
+
+        alpha, beta = m14_posterior_params(st, 1)
+        prior_a = 20.0 * 6 / 45
+        prior_b = 20.0 * (1 - 6 / 45)
+        self.assertAlmostEqual(alpha, prior_a + 3, places=12)
+        self.assertAlmostEqual(beta, prior_b + 7, places=12)
+        self.assertAlmostEqual(alpha + beta, 30.0, places=12)
 
     def test_online_learning_scores_use_the_actual_prediction_seed(self):
         """Learning must score the same seeded tickets used by walk-forward/live prediction."""
@@ -113,6 +127,8 @@ class Backtest(unittest.TestCase):
         self.assertTrue(m8["verdict_vi"].startswith("TỐT HƠN"), m8)
         w = res["learn_weights"]
         self.assertGreater(w["M1"] + w["M2"] + w["M5"], 0.9, w)
+        m14 = next(m for m in res["methods"] if m["code"] == "M14")  # Thompson Beta phải nhận ra độ lệch thật
+        self.assertTrue(m14["verdict_vi"].startswith("TỐT HƠN"), m14)
         m9 = next(m for m in res["methods"] if m["code"] == "M9")  # học máy cũng phải học được độ lệch thật
         self.assertTrue(m9["verdict_vi"].startswith("TỐT HƠN"), m9)
         m16 = next(m for m in res["methods"] if m["code"] == "M16")  # bỏ phiếu tự học dồn phiếu cho phương pháp tốt

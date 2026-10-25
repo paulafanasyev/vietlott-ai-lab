@@ -51,7 +51,7 @@ METHODS: tuple[Method, ...] = (
     Method("M13", "Chuỗi Markov (lặp lại kỳ trước)",
            "Ước lượng xác suất mỗi số về kỳ tới tùy theo nó có về ở kỳ vừa quay hay không (chuỗi Markov 2 trạng thái)."),
     Method("M14", "Lấy mẫu Bayes (Thompson)",
-           "Mỗi số có phân phối hậu nghiệm Gamma theo số lần đã về; rút ngẫu nhiên từ hậu nghiệm và chọn 6 số cao nhất."),
+           "Mỗi số có hậu nghiệm Beta-Bernoulli: tính cả số lần xuất hiện và vắng mặt; lấy mẫu xác suất rồi chọn 6 số cao nhất."),
     Method("M15", "Chu kỳ riêng của từng số",
            "Với khoảng cách hiện tại từ lần về cuối, tính tỷ lệ «về ngay ở khoảng cách này» theo lịch sử riêng của từng số."),
     Method("M16", "Bỏ phiếu tự học (M1–M15)",
@@ -246,6 +246,19 @@ def _top6(scores: Sequence[float], n: int, rng: random.Random) -> tuple[int, ...
     return tuple(sorted(order[:6]))
 
 
+def m14_posterior_params(state: State, number: int) -> tuple[float, float]:
+    """Tham số hậu nghiệm Beta-Bernoulli cho xác suất một số xuất hiện trong một kỳ.
+
+    Prior mean = 6/N và prior strength = 20 kỳ tương đương. Mọi kỳ đã biết đều đóng góp
+    một quan sát: xuất hiện (success) hoặc vắng mặt (failure).
+    """
+    prior_strength = 20.0
+    prior_mean = 6.0 / state.n
+    alpha = prior_strength * prior_mean + state.total[number]
+    beta = prior_strength * (1.0 - prior_mean) + len(state.history) - state.total[number]
+    return alpha, beta
+
+
 def ticket(state: State, code: str, seed_key: str) -> tuple[int, ...]:
     """Vé 6 số của phương pháp `code` cho kỳ kế tiếp sau các kỳ trong `state`."""
     n = state.n
@@ -268,7 +281,13 @@ def ticket(state: State, code: str, seed_key: str) -> tuple[int, ...]:
     if code == "M11":
         return _unpopular(state, rng)
     if code == "M14":
-        return _top6([0.0] + [rng.gammavariate(state.total[x] + 1.0, 1.0) for x in range(1, n + 1)], n, rng)
+        # Thompson sampling for Bernoulli inclusion probabilities. Beta accounts for both
+        # observed appearances and absences; Gamma(count) ignored the absence evidence.
+        samples = [0.0]
+        for x in range(1, n + 1):
+            alpha, beta = m14_posterior_params(state, x)
+            samples.append(rng.betavariate(alpha, beta))
+        return _top6(samples, n, rng)
     if code == "M16":
         w = vote_weights(state)
         votes = [0.0] * (n + 1)
@@ -348,6 +367,7 @@ METHOD_PARAMS["M10"].update({"sum_band": "p25-p75", "odd": [2, 4], "low": [2, 4]
 METHOD_PARAMS["M11"].update({"over31": 4, "max_run": 1})
 METHOD_PARAMS["M12"].update({"coverage_of": "all_other"})
 METHOD_PARAMS["M13"].update({"markov_states": 2, "laplace": 1})
-METHOD_PARAMS["M14"].update({"prior": "gamma(1,1)", "posterior": "gamma(total+1,1)"})
+METHOD_PARAMS["M14"].update({"sampler": "thompson_beta_bernoulli", "prior_mean": "6/max_number",
+                            "prior_strength_draws": 20, "posterior": "Beta(prior_a+appearances, prior_b+absences)"})
 METHOD_PARAMS["M15"].update({"hazard_smoothing": 0.5})
 METHOD_PARAMS["M16"].update({"voters": list(VOTERS), "weights": "hedge"})
