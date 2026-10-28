@@ -79,10 +79,12 @@ class FakeStore:
 
 
 class OfficialPDFFallback(unittest.TestCase):
-    def test_existing_official_observation_confirms_pdf_fallback_without_refetch(self):
-        from datetime import date
+    def test_current_official_pdf_fetch_is_audited_even_for_duplicate_observation(self):
+        from datetime import date, datetime, timezone
+        from unittest.mock import patch
         from vlab.ingest import _official_pdf_fallback
         from vlab.models import Observation
+        from vlab.sources.http import FetchRecord
 
         pdf = "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf"
         archive_obs = Observation.build(
@@ -96,23 +98,53 @@ class OfficialPDFFallback(unittest.TestCase):
             main_numbers=[4, 13, 22, 25, 40, 41], bonus_number=None,
             source_url=pdf, evidence_urls=[pdf], observed_at=AT,
         )
+        now = datetime.now(timezone.utc)
+        record = FetchRecord(
+            url=pdf, started_at=now, finished_at=now, http_status=200, ok=True,
+            raw_sha256="a" * 64, final_url=pdf, body=b"%PDF-test",
+        )
 
         class S:
+            def __init__(self):
+                self.fetches = []
+                self.observations = []
+
             def latest_observations(self, game):
-                self.assert_game = game
+                self.game = game
                 return {1580: [(1, archive_obs), (2, official_obs)]}
 
-        class NeverFetch:
-            def request(self, *args, **kwargs):
-                raise AssertionError("stored official evidence should avoid repeated PDF download")
+            def record_fetch(self, source, game, rec, job_id, parsed=0, rejected=None):
+                self.fetches.append((source, game, rec, parsed, rejected))
+                return 91
 
+            def add_observations(self, observations, fetch_id):
+                self.observations.extend(observations)
+                return 0  # same official result already exists in immutable observation history
+
+        class FakeHttp:
+            def __init__(self):
+                self.calls = []
+
+            def request(self, method, url):
+                self.calls.append((method, url))
+                return record
+
+        store, http = S(), FakeHttp()
         summary = GameSummary("mega645")
-        _official_pdf_fallback(S(), NeverFetch(), "mega645", 7, summary)
+        with patch("vlab.ingest.parse_official_pdf", return_value=official_obs):
+            _official_pdf_fallback(store, http, "mega645", 7, summary)
+
         result = summary.sources["vietlott_ajax"]
+        self.assertEqual(http.calls, [("GET", pdf)])
+        self.assertEqual(len(store.fetches), 1)
+        self.assertEqual(store.fetches[0][0:2], ("vietlott_ajax", "mega645"))
+        self.assertTrue(store.fetches[0][2].ok)
+        self.assertEqual(store.fetches[0][3], 1)
         self.assertTrue(result.reachable)
         self.assertTrue(result.fallback_used)
         self.assertEqual(result.parsed, 1)
-        self.assertIn("bản ghi chính thức", result.note)
+        self.assertEqual(result.new, 0)
+        self.assertIn("đã được tải và kiểm tra thành công", result.note)
 
 
 class OfficialAcrossPages(unittest.TestCase):
