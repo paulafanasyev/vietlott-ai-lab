@@ -215,10 +215,11 @@ def backtest(game: str) -> dict:
         with conn.cursor() as cur:
             if not _ready(cur):
                 return {"ready": False}
-            cur.execute("""SELECT draw_no, main_numbers FROM draw_current
+            cur.execute("""SELECT draw_no, main_numbers, bonus_number FROM draw_current
                            WHERE game = %s AND status IN ('VERIFIED', 'CROSS-CHECKED') AND main_numbers IS NOT NULL
                            ORDER BY draw_no""", (game,))
-            rows = [(int(n), tuple(int(x) for x in nums)) for n, nums in cur.fetchall()]
+            rows = [(int(n), tuple(int(x) for x in nums), int(bonus) if bonus is not None else None)
+                    for n, nums, bonus in cur.fetchall()]
     finally:
         conn.close()
     key = (rows[-1][0] if rows else 0, len(rows))
