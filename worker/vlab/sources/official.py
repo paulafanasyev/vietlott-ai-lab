@@ -17,6 +17,7 @@ from bs4 import BeautifulSoup
 
 from ..games import ValidationError, get_game
 from ..models import Observation, dedupe_batch
+from urllib.parse import urlparse
 from .http import FetchError, FetchRecord, Http
 
 SOURCE_CODE = "vietlott_ajax"
@@ -157,6 +158,92 @@ def parse_list_html(game: str, html: str, *, source_url: str, observed_at: str) 
             rejected.append(f"kỳ {id_text or raw_id!r} ({date_text}): {exc}")
     kept, dup = dedupe_batch(observations)
     return kept, rejected + dup
+
+
+
+# Official result PDFs are hosted on the publisher's static media domain. The AjaxPro
+# endpoint may return HTTP 403 from cloud regions, while the result PDFs are public.
+# The URL is strictly constrained because it originates in a third-party archive record.
+_OFFICIAL_PDF_PATH = re.compile(
+    r"^/main/\\d{1,2}\\.\\d{4}/system/game\\.pdf\\.result/"
+    r"(\\d{5})_(mega|power)_a[45]_(\\d{5})\\.pdf$"
+)
+_OFFICIAL_PDF_NUMBERS = re.compile(
+    r"(?<!\\d)(\\d{2})\\s+(\\d{2})\\s+(\\d{2})\\s+"
+    r"(\\d{2})\\s+(\\d{2})\\s+(\\d{2})(?:\\s*\\|\\s*(\\d{2}))?"
+)
+_OFFICIAL_PDF_DRAW = re.compile(
+    r"K\\s*ỳ\\s*quay\\s*thưởng\\s*:\\s*(\\d{5})\\s*\\|\\s*"
+    r"Ngày\\s*quay\\s*thưởng\\s*:\\s*(\\d{2}/\\d{2}/\\d{4})",
+    re.IGNORECASE,
+)
+
+
+def validate_official_pdf_url(game: str, draw_no: str, url: str) -> bool:
+    """Allow only a real official result PDF for the requested game/draw."""
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    match = _OFFICIAL_PDF_PATH.fullmatch(parsed.path)
+    if (parsed.scheme != "https" or parsed.hostname != "media.vietlott.vn"
+            or parsed.port not in (None, 443) or parsed.username or parsed.password
+            or parsed.query or parsed.fragment or not match):
+        return False
+    expected_product = "mega" if game == "mega645" else "power" if game == "power655" else None
+    return bool(expected_product and match.group(1) == str(draw_no).zfill(5)
+                and match.group(2) == expected_product and match.group(3) == str(draw_no).zfill(5))
+
+
+def parse_official_pdf_text(game: str, draw_no: str, pdf_url: str, text: str,
+                            observed_at: str) -> Observation:
+    """Parse the current draw's result section from extracted text of an official Vietlott PDF."""
+    if not validate_official_pdf_url(game, draw_no, pdf_url):
+        raise ValueError("URL PDF chính thức không khớp trò chơi/kỳ quay")
+    header = _OFFICIAL_PDF_DRAW.search(text)
+    if not header:
+        raise ValueError("PDF chính thức không có số kỳ và ngày quay hợp lệ")
+    pdf_draw_no, date_text = header.groups()
+    if pdf_draw_no != str(draw_no).zfill(5):
+        raise ValueError(f"PDF kỳ {pdf_draw_no} không khớp kỳ yêu cầu {draw_no}")
+    # The current result is the first six-number group after the current draw header.
+    # Historical results further down are hyphen-separated and therefore do not match.
+    result = _OFFICIAL_PDF_NUMBERS.search(text[header.end():header.end() + 1200])
+    if not result:
+        raise ValueError("PDF chính thức không có chuỗi 6 số kết quả")
+    vals = [int(v) for v in result.groups() if v is not None]
+    g = get_game(game)
+    main, bonus = tuple(vals[:6]), vals[6] if len(vals) == 7 else None
+    if g.has_bonus and bonus is None:
+        raise ValueError("PDF Power 6/55 không có số đặc biệt")
+    if not g.has_bonus and bonus is not None:
+        raise ValueError("PDF Mega 6/45 không được có số đặc biệt")
+    draw_date = datetime.strptime(date_text, "%d/%m/%Y").date()
+    return Observation.build(
+        source=SOURCE_CODE, game=game, draw_no=pdf_draw_no, draw_date=draw_date,
+        main_numbers=main, bonus_number=bonus, source_url=pdf_url,
+        observed_at=observed_at, evidence_urls=(pdf_url,),
+        extra={"official_transport": "static_result_pdf"},
+    )
+
+
+def parse_official_pdf(game: str, draw_no: str, pdf_url: str, raw: bytes,
+                       observed_at: str) -> Observation:
+    """Read a small official PDF and validate its draw id, date, main numbers, and special number."""
+    if not raw.startswith(b"%PDF-"):
+        raise ValueError("Phản hồi nguồn PDF không bắt đầu bằng chữ ký PDF")
+    try:
+        from io import BytesIO
+        from pypdf import PdfReader
+        reader = PdfReader(BytesIO(raw), strict=True)
+        if not reader.pages or len(reader.pages) > 5:
+            raise ValueError("PDF có số trang không hợp lệ")
+        text = "\\n".join(page.extract_text() or "" for page in reader.pages)
+    except Exception as exc:
+        raise ValueError(f"Không đọc được PDF chính thức: {type(exc).__name__}: {exc}") from exc
+    if not text.strip():
+        raise ValueError("PDF chính thức không có văn bản có thể kiểm tra")
+    return parse_official_pdf_text(game, draw_no, pdf_url, text, observed_at)
 
 
 def tds_ok(html: str) -> bool:
