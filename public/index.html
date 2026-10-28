@@ -174,21 +174,39 @@ function knownResultFor(g, drawNo) {
   return null;
 }
 function knownDrawScoreHtml(g, draw) {
-  const known = draw && knownResultFor(g, draw.draw_no);
-  if (!known || !Array.isArray(draw.tickets)) return "";
+  const known = knownResultFor(g, "01581");
+  if (!known) return "";
   const result = new Set(known);
-  const rows = latestMethodTickets(draw.tickets).map(t => ({
+  const rows = latestMethodTickets(draw && Array.isArray(draw.tickets) ? draw.tickets : []).map(t => ({
     ...t,
     matched: [...new Set((t.numbers || []).map(Number))].filter(n => result.has(n)).sort((a,b)=>a-b)
   })).sort((a,b) => b.matched.length - a.matched.length || String(a.code).localeCompare(String(b.code), undefined, {numeric:true}));
+  const sortedResult = [...result].sort((a,b)=>a-b);
+  let h = "<div class='goal' style='grid-column:1/-1;margin-top:10px'><b>" + T("Kiểm tra kết quả gần nhất") + "</b>";
+  h += "<div class='note'>" + GN[g] + " · " + T("kỳ") + " 01581 · " + T("Kết quả do người dùng cung cấp, trùng với các công bố bên ngoài; chưa xác minh chính thức trong cơ sở dữ liệu") + "</div>";
+  h += "<div class='featured-balls'>" + balls(sortedResult) + "</div>";
+  if (!rows.length) {
+    h += "<div class='note'>" + T("Chưa tải được danh sách vé đã lưu cho kỳ này; kết quả chưa được ghi vào lịch sử cơ sở dữ liệu.") + "</div>";
+    h += "<div class='note'>" + T("Các số trúng được hiển thị ở đây chỉ dùng để đánh giá hồi cứu, không được tự động đưa vào dự đoán kỳ tiếp theo.") + "</div></div>";
+    return h;
+  }
   const best = rows[0];
-  let h = "<div class='goal' style='grid-column:1/-1;margin-top:10px'><b>" + T("Проверка последнего результата") + "</b>";
-  h += "<div class='note'>" + GN[g] + " · " + T("тираж") + " " + esc(draw.draw_no) + " · " + T("результат предоставлен пользователем; ожидает сверки с базой") + "</div>";
-  h += "<div class='featured-balls'>" + balls([...result].sort((a,b)=>a-b)) + "</div>";
-  h += "<div style='margin:6px 0'><b>" + esc(best.code) + " v" + esc(String(best.version ?? "")) + "</b> — " + T("лучший результат последнего тиража") + ": <b>" + best.matched.length + "/6</b> (" + best.matched.map(n=>String(n).padStart(2,"0")).join(", ") + ")</div>";
-  h += "<div class='scroll'><table><tr><th>" + T("Метод") + "</th><th>" + T("Билет") + "</th><th>" + T("Совпадения") + "</th></tr>";
-  for (const t of rows) h += "<tr><td><b>" + esc(t.code) + " v" + esc(String(t.version ?? "")) + "</b></td><td>" + balls(t.numbers) + "</td><td class='" + (t.matched.length === best.matched.length ? "ok" : "") + "'><b>" + t.matched.length + "/6</b>" + (t.matched.length ? " · " + t.matched.map(n=>String(n).padStart(2,"0")).join(", ") : "") + "</td></tr>";
-  h += "</table></div><div class='note'>" + T("Совпадения рассчитаны по последней версии каждого метода. Это ретроспективная оценка, не доказательство причины выпадения и не основание переносить выигравшие числа в будущий билет.") + "</div></div>";
+  const pick = unifiedPick(rows, MAXN[g]);
+  const pickMatched = pick.numbers.filter(n => result.has(n));
+  h += "<div class='featured' style='margin-top:8px'><div class='featured-title'>" + T("Dự đoán tổng hợp cho kỳ #01581 (đánh giá hồi cứu)") + "</div>";
+  h += "<div class='featured-balls'>" + balls(pick.numbers, pickMatched) + "</div>";
+  h += "<div><b>" + T("Số khớp trong dự đoán tổng hợp") + ": " + pickMatched.length + "/6</b>" + (pickMatched.length ? " · " + pickMatched.map(n=>String(n).padStart(2,"0")).join(", ") : "") + "</div>";
+  h += "<div class='note'>" + T("Dự đoán tổng hợp được tính từ các vé đã lưu trước giờ quay, mỗi phương pháp một phiếu; đây là điểm số hồi cứu, không phải dự đoán cho kỳ kế tiếp.") + "</div></div>";
+  h += "<div style='margin:8px 0'><b>" + esc(best.code) + " v" + esc(String(best.version ?? "")) + "</b> — " + T("Phương pháp có kết quả tốt nhất ở kỳ này") + ": <b>" + best.matched.length + "/6</b>" + (best.matched.length ? " · " + best.matched.map(n=>String(n).padStart(2,"0")).join(", ") : "") + "</div>";
+  h += "<div><b>" + T("Số phiếu cho từng số trúng") + "</b><div class='row' style='margin-top:6px'>";
+  for (const n of sortedResult) {
+    const chosen = pick.numbers.includes(n);
+    h += "<span class='goal' style='padding:6px 9px;margin:0'><b>" + String(n).padStart(2,"0") + "</b><span class='note'>" + (pick.votes[n] || 0) + "/" + pick.methodCount + " · " + (chosen ? T("Có trong dự đoán tổng hợp") : T("Không vào 6 số tổng hợp")) + "</span></span>";
+  }
+  h += "</div><div class='note'>" + T("Số phiếu cho biết có bao nhiêu phương pháp đã chọn mỗi số; nó không giải thích nguyên nhân xổ số ngẫu nhiên xuất hiện số đó.") + "</div></div>";
+  h += "<div class='scroll'><table><tr><th>" + T("Phương pháp") + "</th><th>" + T("Vé (số trúng tô xanh)") + "</th><th>" + T("Số trúng") + "</th><th>" + T("Cách tính") + "</th></tr>";
+  for (const t of rows) h += "<tr><td><b>" + esc(t.code) + " v" + esc(String(t.version ?? "")) + "</b></td><td>" + balls(t.numbers, t.matched) + "</td><td class='" + (t.matched.length === best.matched.length ? "ok" : "") + "'><b>" + t.matched.length + "/6</b>" + (t.matched.length ? " · " + t.matched.map(n=>String(n).padStart(2,"0")).join(", ") : "") + "</td><td class='note'>" + esc(tx(t.explanation_vi || "")) + "</td></tr>";
+  h += "</table></div><div class='note'>" + T("Điểm số dùng phiên bản mới nhất của mỗi phương pháp. Việc trúng số không chứng minh phương pháp gây ra kết quả, và không nên sao chép số đã trúng vào vé tương lai.") + "</div></div>";
   return h;
 }
 
