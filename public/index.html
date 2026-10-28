@@ -258,11 +258,11 @@ async function pPredict(g) {
     h += unifiedPickHtml(g, up);
     h += "<div class='method-heading'>" + T("Dự đoán riêng của từng phương pháp tính toán") + "</div>";
     h += "<div class='note'>" + T("Chỉ hiển thị phiên bản mới nhất của từng phương pháp. Các phiên bản cũ vẫn được giữ trong lịch sử.") + "</div>";
-    h += T("<table><tr><th>Phương pháp</th><th>Tổ hợp số</th><th>Cách tính</th></tr>");
+    h += "<table><tr><th>" + T("Phương pháp") + "</th><th>" + T("Tổ hợp số") + "</th><th>" + T("Cách tính") + "</th></tr>";
     for (const t of latestMethodTickets(up.tickets)) {
       h += "<tr><td><b>" + esc(t.code) + " v" + esc(String(t.version ?? "")) + "</b></td><td>" + balls(t.numbers) + "</td><td class='note'>" + esc(tx(t.explanation_vi)) + "</td></tr>";
     }
-    h += T("</table><div id='sc' class='note'>Đang tính xác suất của các phương pháp được hiển thị…</div>");
+    h += "</table><div id='sc' class='note'>" + T("Đang tính xác suất của các phương pháp được hiển thị…") + "</div>";
   }
   const o = lv.j.goal_odds;
   if (o) {
@@ -278,7 +278,7 @@ async function pPredict(g) {
     const uniq = [...new Map(currentMethods.map(t => [t.numbers.join(","), t.numbers])).values()];
     const s = setChance(uniq, n), r3 = 1 - Math.pow(1 - pAtLeast(n, 3), s.k), r4 = 1 - Math.pow(1 - pAtLeast(n, 4), s.k);
     const p5 = s.k * pAtLeast(n, 5), p6 = s.k / comb(n, 6);
-    $("#sc").innerHTML = T("<div style='margin-top:10px'><b>Bộ ") + s.k + T(" tổ hợp khác nhau từ các phương pháp đang hiển thị</b> (ít nhất một vé đạt), so với ") + s.k + T(" vé ngẫu nhiên:</div><div class='goals'>")
+    $("#sc").innerHTML = "<div style='margin-top:10px'><b>" + T("Bộ") + " " + s.k + " " + T("tổ hợp khác nhau từ các phương pháp đang hiển thị") + "</b> (" + T("ít nhất một vé đạt") + "), " + T("so với") + " " + s.k + " " + T("vé ngẫu nhiên") + ":</div><div class='goals'>"
       + T("<div class='goal'><span class='note'>Từ 3 số</span><b>") + pct(s.p3) + T("</b><span class='note'>ngẫu nhiên: ") + pct(r3) + "</span></div>"
       + T("<div class='goal'><span class='note'>Từ 4 số</span><b>") + pct(s.p4) + T("</b><span class='note'>1 trên ") + nf(Math.round(1 / Math.max(s.p4, 1e-9))) + T(" · ngẫu nhiên: ") + pct(r4) + "</span></div>"
       + T("<div class='goal'><span class='note'>Từ 5 số</span><b>1 trên ") + nf(Math.round(1 / p5)) + T("</b><span class='note'>ngẫu nhiên: như nhau</span></div>")
