@@ -14,7 +14,7 @@ from urllib.parse import urljoin, urlparse
 import requests
 
 ALLOWED_HOSTS = frozenset({
-    "vietlott.vn", "www.vietlott.vn",
+    "vietlott.vn", "www.vietlott.vn", "media.vietlott.vn",
     "raw.githubusercontent.com",
 })
 RETRY_STATUSES = frozenset({408, 425, 429, 500, 502, 503, 504})
