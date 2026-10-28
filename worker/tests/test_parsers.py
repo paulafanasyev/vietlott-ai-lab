@@ -2,7 +2,8 @@ import unittest
 from pathlib import Path
 
 from vlab.sources.archives import parse_nhanaz, parse_pqminh, parse_vietvudanh
-from vlab.sources.official import build_list_body, extract_html_content, parse_list_html
+from vlab.sources.official import (build_list_body, extract_html_content, parse_list_html,
+                                    parse_official_pdf_text, validate_official_pdf_url)
 
 FIX = Path(__file__).parent / "fixtures"
 AT = "2026-10-16T12:00:00+00:00"
@@ -58,6 +59,64 @@ class OfficialParser(unittest.TestCase):
                     b'{"value":{"HtmlContent":""}}'):
             with self.assertRaises(ValueError, msg=raw):
                 extract_html_content(raw)
+
+
+class OfficialPDFParser(unittest.TestCase):
+    def test_official_mega_pdf_text(self):
+        url = "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf"
+        text = (
+            "KẾT QUẢ TRÚNG THƯỞNG MEGA 645\n"
+            "Kỳ quay thưởng: 01580 | Ngày quay thưởng: 25/10/2026\n"
+            "16.103.186.000 đ\n"
+            "04 13 22 25 40 41\n"
+            "KẾT QUẢ QUAY SỐ MỞ THƯỞNG 05 KỲ LIỀN TRƯỚC\n"
+            "01579 23/10/2026 02-05-11-22-32-40"
+        )
+        obs = parse_official_pdf_text("mega645", "01580", url, text, AT)
+        self.assertEqual(obs.draw_no, "01580")
+        self.assertEqual(str(obs.draw_date), "2026-10-25")
+        self.assertEqual(obs.main_numbers, (4, 13, 22, 25, 40, 41))
+        self.assertIsNone(obs.bonus_number)
+        self.assertEqual(obs.source, "vietlott_ajax")
+        self.assertEqual(obs.evidence_urls, (url,))
+
+    def test_official_power_pdf_text(self):
+        url = "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01416_power_a5_01416.pdf"
+        text = (
+            "KẾT QUẢ TRÚNG THƯỞNG POWER 655\n"
+            "Kỳ quay thưởng: 01416 | Ngày quay thưởng: 27/10/2026\n"
+            "31.758.267.450 đ\n"
+            "09 18 27 28 31 35 |50\n"
+            "KẾT QUẢ QUAY SỐ MỞ THƯỞNG 05 KỲ LIỀN TRƯỚC\n"
+            "01415 24/10/2026 06-07-18-41-44-50 | 53"
+        )
+        obs = parse_official_pdf_text("power655", "01416", url, text, AT)
+        self.assertEqual(obs.draw_no, "01416")
+        self.assertEqual(str(obs.draw_date), "2026-10-27")
+        self.assertEqual(obs.main_numbers, (9, 18, 27, 28, 31, 35))
+        self.assertEqual(obs.bonus_number, 50)
+
+    def test_pdf_url_is_bound_to_official_domain_game_and_draw(self):
+        allowed = "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf"
+        self.assertTrue(validate_official_pdf_url("mega645", "01580", allowed))
+        for bad in (
+            "https://evil.example/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf",
+            "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01580_power_a5_01580.pdf",
+            "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01579_mega_a5_01579.pdf",
+            "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf?x=1",
+            "https://user@media.vietlott.vn/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf",
+            "https://media.vietlott.vn:99999/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf",
+        ):
+            self.assertFalse(validate_official_pdf_url("mega645", "01580", bad), bad)
+
+    def test_pdf_must_match_header_and_game_format(self):
+        url = "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf"
+        text = "Kỳ quay thưởng: 01579 | Ngày quay thưởng: 23/10/2026\n04 13 22 25 40 41"
+        with self.assertRaises(ValueError):
+            parse_official_pdf_text("mega645", "01580", url, text, AT)
+        with self.assertRaises(ValueError):
+            parse_official_pdf_text("mega645", "01580",
+                url.replace("01580_mega", "01580_power"), text.replace("01579", "01580"), AT)
 
 
 class ArchiveHardening(unittest.TestCase):
