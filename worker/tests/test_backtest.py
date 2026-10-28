@@ -76,7 +76,7 @@ class Methods(unittest.TestCase):
         self.assertEqual(m0["counts"]["5"], 1)
         self.assertEqual(m0["special_number"]["actual"], 1)
         self.assertEqual(m0["jackpot2"]["actual"], 1)
-        self.assertEqual(result["power_jackpot2_odds"]["one_in"], 98604)
+        self.assertEqual(result["power_jackpot2_odds"]["one_in"], 4831612)
 
     def test_online_learning_scores_use_the_actual_prediction_seed(self):
         """Learning must score the same seeded tickets used by walk-forward/live prediction."""
