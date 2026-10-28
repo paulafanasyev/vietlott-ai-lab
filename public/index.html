@@ -206,14 +206,19 @@ async function pOverview() {
     api("/api/automation"), api("/api/acceptance"), api("/api/backtest?game=mega645"), api("/api/backtest?game=power655")]);
   if (!st.ok) { $("#ov").innerHTML = err(st.j); return; }
   if (!st.j.ready) { $("#ov").textContent = st.j.message_vi; return; }
-  let h = "<div class='grid'>";
+  let h = "<div class='grid featured-grid'>";
+  for (const [g, lv] of [["mega645", lm], ["power655", lp]]) {
+    const upcoming = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result) : null;
+    h += unifiedPickHtml(g, upcoming);
+  }
+  h += "</div><div class='grid'>";
   for (const [g, lv, bt] of [["mega645", lm, bm], ["power655", lp, bp]]) {
     const l = st.j.latest[g], d = (st.j.counts[g] || {});
     h += "<div class='goal'><b>" + GN[g] + T("</b>Kỳ mới nhất: ") + (l ? l.draw_no + " (" + esc(l.draw_date) + ")" : "—") + "<br>";
     for (const [k, v] of Object.entries(d)) h += "<span class='st " + k.replace(" ", "-") + "'>" + k + "</span> " + v + " ";
     const up = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result) : null;
     const last = lv.ok && lv.j.draws ? lv.j.draws.find(x => x.result) : null;
-    h += "<div style='margin-top:6px'>" + (up ? T("Vé cho kỳ <b>") + up.draw_no + T("</b> (quay ") + fmtTime(up.draw_at) + T("): đã ghi ") + up.tickets.length + T(" vé")
+    h += "<div style='margin-top:6px'>" + (up ? T("Vé cho kỳ <b>") + up.draw_no + T("</b> (quay ") + fmtTime(up.draw_at) + T("): đã ghi ") + latestMethodTickets(up.tickets).length + T(" phương pháp")
           : T("Vé kỳ tới: sẽ ghi ở lần chạy kế tiếp")) + "</div>";
     if (last) { const best = Math.max(...last.tickets.map(t => t.hits ?? 0)); h += T("<div>Đối chiếu gần nhất: kỳ ") + last.draw_no + T(", vé tốt nhất trúng ") + best + T(" số</div>"); }
     if (bt.ok && bt.j.methods) {
