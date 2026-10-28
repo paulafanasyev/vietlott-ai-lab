@@ -125,8 +125,8 @@ class OfficialPDFFallback(unittest.TestCase):
             def __init__(self):
                 self.calls = []
 
-            def request(self, method, url):
-                self.calls.append((method, url))
+            def request(self, method, url, **kwargs):
+                self.calls.append((method, url, kwargs))
                 return record
 
         store, http = S(), FakeHttp()
