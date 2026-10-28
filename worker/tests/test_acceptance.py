@@ -50,6 +50,8 @@ class AcceptanceDB(unittest.TestCase):
         self.assertEqual(by[4]["status"], PASS, by[4])
         self.assertEqual(by[2]["status"], PASS, by[2])
         self.assertEqual(sum(rep["summary"].values()), 14)
+        self.assertNotIn("Vercel đặt tại Mỹ", by[1]["evidence_vi"])
+        self.assertIn("CROSS-CHECKED", by[1]["evidence_vi"])
         with self.conn.cursor() as cur:  # thử UPDATE đã bị hoàn tác, kết nối vẫn dùng được
             cur.execute("SELECT count(*) FROM draw_versions")
             self.assertGreaterEqual(cur.fetchone()[0], 10)
