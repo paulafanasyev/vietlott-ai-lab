@@ -368,6 +368,7 @@ METHOD_PARAMS["M11"].update({"over31": 4, "max_run": 1})
 METHOD_PARAMS["M12"].update({"coverage_of": "all_other"})
 METHOD_PARAMS["M13"].update({"markov_states": 2, "laplace": 1})
 METHOD_PARAMS["M14"].update({"sampler": "thompson_beta_bernoulli", "prior_mean": "6/max_number",
-                            "prior_strength_draws": 20, "posterior": "Beta(prior_a+appearances, prior_b+absences)"})
+                            "prior_strength_draws": 20, "posterior": "Beta(prior_a+appearances, prior_b+absences)",
+                            "implementation": "beta_bernoulli_thompson_v1"})
 METHOD_PARAMS["M15"].update({"hazard_smoothing": 0.5})
 METHOD_PARAMS["M16"].update({"voters": list(VOTERS), "weights": "hedge"})

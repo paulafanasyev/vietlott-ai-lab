@@ -282,13 +282,22 @@ async function pBacktest() {
   if (!ok) { $("#bt").innerHTML = err(j); return; }
   if (!j.ready || !j.methods) { $("#bt").textContent = T("Chưa có dữ liệu."); return; }
   let h = "<div style='margin-top:6px'>" + GN[g] + ": " + nf(j.draws_used) + T(" kỳ (") + j.first_draw + "–" + j.last_draw + "), " + j.warmup + T(" kỳ đầu chỉ để học → chấm trên ") + nf(j.methods[0].draws) + T(" kỳ.</div>");
+  if (g === "power655" && j.power_jackpot2_odds) {
+    h += T("<div class='note' style='margin-top:6px'>Power 6/55: số đặc biệt được tính riêng với 6 số chính. Xác suất Jackpot 2 (5 số chính + số đặc biệt) của một vé ngẫu nhiên: 1 trên ")
+      + nf(j.power_jackpot2_odds.one_in) + T(". Các cột dưới đây không cộng số đặc biệt vào số trúng chính.</div>");
+  }
   h += T("<div class='scroll'><table><tr><th>Phương pháp</th><th>TB số trúng / vé</th>");
   for (const k of ["3", "4", "5", "6"]) h += "<th>" + GOAL[k] + T("<br>thực tế / kỳ vọng</th>");
+  if (g === "power655") h += T("<th>Vé có số đặc biệt</th><th>Jackpot 2</th>");
   h += T("<th>Kết luận</th></tr>");
   for (const m of j.methods) {
     const c = m.verdict_vi.startsWith("TỐT") ? "ok" : m.verdict_vi.startsWith("KÉM") ? "bad" : "";
     h += "<tr><td title='" + esc(T(m.description_vi)) + "'><b>" + m.code + "</b> " + esc(T(m.name_vi)) + "</td><td>" + m.mean_hits.toFixed(3) + T(" <span class='note'>(ngẫu nhiên ") + m.random_mean_hits.toFixed(3) + ")</span></td>";
     for (const k of ["3", "4", "5", "6"]) { const x = m.goals[k]; h += "<td>" + x.actual + " / " + x.expected + "<br><span class='note'>" + pct(x.actual_rate) + " vs " + pct(x.random_rate) + "</span></td>"; }
+    if (g === "power655" && m.special_number && m.jackpot2) {
+      h += "<td>" + m.special_number.actual + " / " + (m.draws * m.special_number.random_rate).toFixed(2) + "<br><span class='note'>" + pct(m.special_number.actual_rate) + " vs " + pct(m.special_number.random_rate) + "</span></td>";
+      h += "<td>" + m.jackpot2.actual + " / " + m.jackpot2.expected + "<br><span class='note'>" + pct(m.jackpot2.actual_rate) + " vs " + pct(m.jackpot2.random_rate) + "</span></td>";
+    }
     h += "<td class='" + c + "'>" + esc(T(m.verdict_vi)) + "<br><span class='note'>p = " + m.p_value + "</span></td></tr>";
   }
   h += T("</table></div><div class='note'>Kiểm định z cho số trúng trung bình, hiệu chỉnh Bonferroni cho ") + j.bonferroni_tests + T(" phương pháp (α = ") + j.alpha + ").</div><div class='warn'>" + esc(T(j.note_vi)) + "</div>";
