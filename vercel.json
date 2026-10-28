@@ -7,7 +7,7 @@
     { "source": "/api/:route", "destination": "/api/index?route=:route" }
   ],
   "crons": [
-    { "path": "/api/cron", "schedule": "45 12 * * *" },
+    { "path": "/api/cron", "schedule": "30 13 * * *" },
     { "path": "/api/cron-morning", "schedule": "0 0 * * *" }
   ]
 }
