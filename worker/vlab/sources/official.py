@@ -12,12 +12,12 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
 from ..games import ValidationError, get_game
 from ..models import Observation, dedupe_batch
-from urllib.parse import urlparse
 from .http import FetchError, FetchRecord, Http
 
 SOURCE_CODE = "vietlott_ajax"
