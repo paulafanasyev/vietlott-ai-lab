@@ -168,6 +168,30 @@ function latestMethodTickets(tickets) {
 
 // Each distinct method gets one vote based on its latest version.
 // Ties are broken by number ascending for a deterministic, transparent result.
+// User-provided result is provisional until backend ingestion/cross-check.
+function knownResultFor(g, drawNo) {
+  if (g === "mega645" && String(drawNo) === "01581") return [1, 9, 11, 28, 33, 42];
+  return null;
+}
+function knownDrawScoreHtml(g, draw) {
+  const known = draw && knownResultFor(g, draw.draw_no);
+  if (!known || !Array.isArray(draw.tickets)) return "";
+  const result = new Set(known);
+  const rows = latestMethodTickets(draw.tickets).map(t => ({
+    ...t,
+    matched: [...new Set((t.numbers || []).map(Number))].filter(n => result.has(n)).sort((a,b)=>a-b)
+  })).sort((a,b) => b.matched.length - a.matched.length || String(a.code).localeCompare(String(b.code), undefined, {numeric:true}));
+  const best = rows[0];
+  let h = "<div class='goal' style='grid-column:1/-1;margin-top:10px'><b>" + T("Проверка последнего результата") + "</b>";
+  h += "<div class='note'>" + GN[g] + " · " + T("тираж") + " " + esc(draw.draw_no) + " · " + T("результат предоставлен пользователем; ожидает сверки с базой") + "</div>";
+  h += "<div class='featured-balls'>" + balls([...result].sort((a,b)=>a-b)) + "</div>";
+  h += "<div style='margin:6px 0'><b>" + esc(best.code) + " v" + esc(String(best.version ?? "")) + "</b> — " + T("лучший результат последнего тиража") + ": <b>" + best.matched.length + "/6</b> (" + best.matched.map(n=>String(n).padStart(2,"0")).join(", ") + ")</div>";
+  h += "<div class='scroll'><table><tr><th>" + T("Метод") + "</th><th>" + T("Билет") + "</th><th>" + T("Совпадения") + "</th></tr>";
+  for (const t of rows) h += "<tr><td><b>" + esc(t.code) + " v" + esc(String(t.version ?? "")) + "</b></td><td>" + balls(t.numbers) + "</td><td class='" + (t.matched.length === best.matched.length ? "ok" : "") + "'><b>" + t.matched.length + "/6</b>" + (t.matched.length ? " · " + t.matched.map(n=>String(n).padStart(2,"0")).join(", ") : "") + "</td></tr>";
+  h += "</table></div><div class='note'>" + T("Совпадения рассчитаны по последней версии каждого метода. Это ретроспективная оценка, не доказательство причины выпадения и не основание переносить выигравшие числа в будущий билет.") + "</div></div>";
+  return h;
+}
+
 function unifiedPick(tickets, maxNumber) {
   const methods = latestMethodTickets(tickets);
   const votes = Array(maxNumber + 1).fill(0);
@@ -208,15 +232,17 @@ async function pOverview() {
   if (!st.j.ready) { $("#ov").textContent = st.j.message_vi; return; }
   let h = "<div class='grid featured-grid'>";
   for (const [g, lv] of [["mega645", lm], ["power655", lp]]) {
-    const upcoming = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result) : null;
+    const upcoming = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result && !knownResultFor(g, x.draw_no)) : null;
     h += unifiedPickHtml(g, upcoming);
   }
-  h += "</div><div class='grid'>";
+  h += "</div>";
+  h += knownDrawScoreHtml("mega645", lm.ok && lm.j.draws ? lm.j.draws.find(x => String(x.draw_no) === "01581") : null);
+  h += "<div class='grid'>";
   for (const [g, lv, bt] of [["mega645", lm, bm], ["power655", lp, bp]]) {
     const l = st.j.latest[g], d = (st.j.counts[g] || {});
     h += "<div class='goal'><b>" + GN[g] + T("</b>Kỳ mới nhất: ") + (l ? l.draw_no + " (" + esc(l.draw_date) + ")" : "—") + "<br>";
     for (const [k, v] of Object.entries(d)) h += "<span class='st " + k.replace(" ", "-") + "'>" + k + "</span> " + v + " ";
-    const up = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result) : null;
+    const up = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result && !knownResultFor(g, x.draw_no)) : null;
     const last = lv.ok && lv.j.draws ? lv.j.draws.find(x => x.result) : null;
     h += "<div style='margin-top:6px'>" + (up ? T("Vé cho kỳ <b>") + up.draw_no + T("</b> (quay ") + fmtTime(up.draw_at) + T("): đã ghi ") + latestMethodTickets(up.tickets).length + T(" phương pháp")
           : T("Vé kỳ tới: sẽ ghi ở lần chạy kế tiếp")) + "</div>";
@@ -250,7 +276,7 @@ async function pPredict(g) {
     T("Mỗi phương pháp ghi một vé cho kỳ tới TRƯỚC giờ quay (CSDL từ chối vé ghi muộn). Vé được ghi ngay sau khi có kết quả kỳ trước: 3 kỳ mỗi tuần cho mỗi trò chơi.")));
   const [lv, bt] = await Promise.all([api("/api/live?game=" + g), api("/api/backtest?game=" + g)]);
   if (!lv.ok) { $("#pr").innerHTML = err(lv.j); return; }
-  const up = (lv.j.draws || []).find(x => !x.result);
+  const up = (lv.j.draws || []).find(x => !x.result && !knownResultFor(g, x.draw_no));
   let h = "";
   if (!up) h += T("<div>Vé cho kỳ tới sẽ được ghi ở lần chạy kế tiếp (sau khi có kết quả kỳ vừa quay).</div>");
   else {
