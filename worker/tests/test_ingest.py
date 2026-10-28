@@ -3,6 +3,8 @@ import unittest
 from vlab.ingest import GameSummary, SourceResult, run, summary_vi
 from vlab.store import Store
 
+AT = "2026-10-16T12:00:00+00:00"
+
 
 class IngestUnit(unittest.TestCase):
     def test_official_pages_bounds(self):
