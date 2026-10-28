@@ -43,7 +43,32 @@ window.RU_EXTRA = {
   "Chu kỳ riêng của từng số": "Собственный цикл каждого числа",
   "Với khoảng cách hiện tại từ lần về cuối, tính tỷ lệ «về ngay ở khoảng cách này» theo lịch sử riêng của từng số.": "По текущей паузе с последнего выпадения считает, как часто именно это число возвращалось после такой паузы.",
   "Bỏ phiếu tự học (M1–M15)": "Самообучающееся голосование (M1–M15)",
-  "Mỗi phương pháp bỏ phiếu cho 6 số của mình; phiếu có trọng số tự cập nhật sau mỗi kỳ theo thành tích gần đây (Hedge).": "Каждый метод голосует за свои 6 чисел; вес голоса сам обновляется после каждого тиража по недавним результатам (Hedge)."
+  "Mỗi phương pháp bỏ phiếu cho 6 số của mình; phiếu có trọng số tự cập nhật sau mỗi kỳ theo thành tích gần đây (Hedge).": "Каждый метод голосует за свои 6 чисел; вес голоса сам обновляется после каждого тиража по недавним результатам (Hedge).",
+  "Kiểm tra kết quả gần nhất": "Проверка последнего результата",
+  "Kết quả do người dùng cung cấp, trùng với các công bố bên ngoài; chưa xác minh chính thức trong cơ sở dữ liệu": "Результат предоставлен пользователем и совпадает с внешними публикациями; официальная сверка с базой ещё не выполнена",
+  "Chưa tải được danh sách vé đã lưu cho kỳ này; kết quả chưa được ghi vào lịch sử cơ sở dữ liệu.": "Список сохранённых билетов этого тиража пока недоступен; результат ещё не внесён в историю базы данных.",
+  "Các số trúng được hiển thị ở đây chỉ dùng để đánh giá hồi cứu, không được tự động đưa vào dự đoán kỳ tiếp theo.": "Выпавшие числа здесь показаны только для ретроспективной оценки и не добавляются автоматически в прогноз следующего тиража.",
+  "Dự đoán tổng hợp cho kỳ #01581 (đánh giá hồi cứu)": "Единый прогноз для тиража #01581 (ретроспективная оценка)",
+  "Số khớp trong dự đoán tổng hợp": "Совпадения единого прогноза",
+  "Dự đoán tổng hợp được tính từ các vé đã lưu trước giờ quay, mỗi phương pháp một phiếu; đây là điểm số hồi cứu, không phải dự đoán cho kỳ kế tiếp.": "Единый прогноз рассчитан по билетам, сохранённым до розыгрыша, один голос от метода; это ретроспективная оценка, а не прогноз следующего тиража.",
+  "Phương pháp có kết quả tốt nhất ở kỳ này": "Лучший результат на этом тираже",
+  "Số phiếu cho từng số trúng": "Число голосов по каждому выпавшему номеру",
+  "Có trong dự đoán tổng hợp": "Вошёл в единый прогноз",
+  "Không vào 6 số tổng hợp": "Не вошёл в шесть чисел общего прогноза",
+  "Số phiếu cho biết có bao nhiêu phương pháp đã chọn mỗi số; nó không giải thích nguyên nhân xổ số ngẫu nhiên xuất hiện số đó.": "Число голосов показывает, сколько методов выбрали каждый номер; это не объясняет причину выпадения числа в случайной лотерее.",
+  "Phương pháp": "Метод",
+  "Vé (số trúng tô xanh)": "Билет (совпавшие числа выделены зелёным)",
+  "Số trúng": "Совпадения",
+  "Cách tính": "Как рассчитан билет",
+  "Điểm số dùng phiên bản mới nhất của mỗi phương pháp. Việc trúng số không chứng minh phương pháp gây ra kết quả, và không nên sao chép số đã trúng vào vé tương lai.": "Оценка использует последнюю версию каждого метода. Совпадение не означает, что метод вызвал результат; не переносите выигравшие числа в будущие билеты.",
+  "Kết quả được lấy từ bản ghi live; trạng thái xác minh bên dưới": "Результат взят из live-записи; статус проверки указан ниже",
+  "Kết quả do người dùng cung cấp; chờ xác minh trong cơ sở dữ liệu": "Результат предоставлен пользователем; ожидает проверки в базе данных",
+  "Trạng thái xác minh trong CSDL": "Статус проверки в базе данных",
+  "Chưa tải được danh sách vé đã lưu cho kỳ này; chưa thể tính điểm cho từng phương pháp.": "Список сохранённых билетов этого тиража не загружен; оценить каждый метод пока нельзя.",
+  "Dự đoán tổng hợp cho kỳ": "Единый прогноз для тиража",
+  "đánh giá hồi cứu": "ретроспективная оценка",
+  "Chỉ có một nhóm nguồn gốc (vietvudanh); cần thêm xác nhận": "В базе пока только один источник (vietvudanh); требуется дополнительное подтверждение"
+
 };
 // Tiêu đề giả thuyết có dạng «[Mega 6/45] …»: mẫu khớp phần cuối, giữ nguyên tiền tố trò chơi.
 window.RU_PATTERNS = [

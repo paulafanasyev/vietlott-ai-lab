@@ -168,6 +168,56 @@ function latestMethodTickets(tickets) {
 
 // Each distinct method gets one vote based on its latest version.
 // Ties are broken by number ascending for a deterministic, transparent result.
+// User-provided result is provisional until backend ingestion/cross-check.
+function knownResultFor(g, drawNo) {
+  if (g === "mega645" && String(drawNo) === "01581") return [1, 9, 11, 28, 33, 42];
+  return null;
+}
+function knownDrawScoreHtml(g, draw, verificationRows) {
+  const hasStoredResult = !!(draw && Array.isArray(draw.result) && draw.result.length === 6);
+  const known = hasStoredResult ? draw.result.map(Number) : (draw ? knownResultFor(g, draw.draw_no) : knownResultFor(g, "01581"));
+  if (!known || known.length !== 6) return "";
+  const drawNo = String((draw && draw.draw_no) || "01581");
+  const result = new Set(known);
+  const verified = (verificationRows || []).find(r => String(r.draw_no) === drawNo);
+  const statuses = ["VERIFIED","CROSS-CHECKED","NOT PROVEN","CONFLICT","PENDING"];
+  const dbStatus = statuses.includes(verified && verified.status) ? verified.status : "PENDING";
+  const reason = verified && verified.reason_vi ? verified.reason_vi : "";
+  const rows = latestMethodTickets(draw && Array.isArray(draw.tickets) ? draw.tickets : []).map(t => ({
+    ...t,
+    matched: [...new Set((t.numbers || []).map(Number))].filter(n => result.has(n)).sort((a,b)=>a-b)
+  })).sort((a,b) => b.matched.length - a.matched.length || String(a.code).localeCompare(String(b.code), undefined, {numeric:true}));
+  const sortedResult = [...result].sort((a,b)=>a-b);
+  let h = "<div class='goal' style='grid-column:1/-1;margin-top:10px'><b>" + T("Kiểm tra kết quả gần nhất") + "</b>";
+  h += "<div class='note'>" + GN[g] + " · " + T("kỳ") + " " + esc(drawNo) + " · " + T(hasStoredResult ? "Kết quả được lấy từ bản ghi live; trạng thái xác minh bên dưới" : "Kết quả do người dùng cung cấp; chờ xác minh trong cơ sở dữ liệu") + "</div>";
+  h += "<div class='note'>" + T("Trạng thái xác minh trong CSDL") + ": <span class='st " + dbStatus.replace(/ /g,"-") + "'>" + esc(dbStatus) + "</span></div>";
+  if (reason) h += "<div class='note'>" + esc(T(reason)) + "</div>";
+  h += "<div class='featured-balls'>" + balls(sortedResult) + "</div>";
+  if (!rows.length) {
+    h += "<div class='note'>" + T("Chưa tải được danh sách vé đã lưu cho kỳ này; chưa thể tính điểm cho từng phương pháp.") + "</div>";
+    h += "<div class='note'>" + T("Các số trúng được hiển thị ở đây chỉ dùng để đánh giá hồi cứu, không được tự động đưa vào dự đoán kỳ tiếp theo.") + "</div></div>";
+    return h;
+  }
+  const best = rows[0];
+  const pick = unifiedPick(rows, MAXN[g]);
+  const pickMatched = pick.numbers.filter(n => result.has(n));
+  h += "<div class='featured' style='margin-top:8px'><div class='featured-title'>" + T("Dự đoán tổng hợp cho kỳ") + " #" + esc(drawNo) + " (" + T("đánh giá hồi cứu") + ")</div>";
+  h += "<div class='featured-balls'>" + balls(pick.numbers, pickMatched) + "</div>";
+  h += "<div><b>" + T("Số khớp trong dự đoán tổng hợp") + ": " + pickMatched.length + "/6</b>" + (pickMatched.length ? " · " + pickMatched.map(n=>String(n).padStart(2,"0")).join(", ") : "") + "</div>";
+  h += "<div class='note'>" + T("Dự đoán tổng hợp được tính từ các vé đã lưu trước giờ quay, mỗi phương pháp một phiếu; đây là điểm số hồi cứu, không phải dự đoán cho kỳ kế tiếp.") + "</div></div>";
+  h += "<div style='margin:8px 0'><b>" + esc(best.code) + " v" + esc(String(best.version ?? "")) + "</b> — " + T("Phương pháp có kết quả tốt nhất ở kỳ này") + ": <b>" + best.matched.length + "/6</b>" + (best.matched.length ? " · " + best.matched.map(n=>String(n).padStart(2,"0")).join(", ") : "") + "</div>";
+  h += "<div><b>" + T("Số phiếu cho từng số trúng") + "</b><div class='row' style='margin-top:6px'>";
+  for (const n of sortedResult) {
+    const chosen = pick.numbers.includes(n);
+    h += "<span class='goal' style='padding:6px 9px;margin:0'><b>" + String(n).padStart(2,"0") + "</b><span class='note'>" + (pick.votes[n] || 0) + "/" + pick.methodCount + " · " + (chosen ? T("Có trong dự đoán tổng hợp") : T("Không vào 6 số tổng hợp")) + "</span></span>";
+  }
+  h += "</div><div class='note'>" + T("Số phiếu cho biết có bao nhiêu phương pháp đã chọn mỗi số; nó không giải thích nguyên nhân xổ số ngẫu nhiên xuất hiện số đó.") + "</div></div>";
+  h += "<div class='scroll'><table><tr><th>" + T("Phương pháp") + "</th><th>" + T("Vé (số trúng tô xanh)") + "</th><th>" + T("Số trúng") + "</th><th>" + T("Cách tính") + "</th></tr>";
+  for (const t of rows) h += "<tr><td><b>" + esc(t.code) + " v" + esc(String(t.version ?? "")) + "</b></td><td>" + balls(t.numbers, t.matched) + "</td><td class='" + (t.matched.length === best.matched.length ? "ok" : "") + "'><b>" + t.matched.length + "/6</b>" + (t.matched.length ? " · " + t.matched.map(n=>String(n).padStart(2,"0")).join(", ") : "") + "</td><td class='note'>" + esc(tx(t.explanation_vi || "")) + "</td></tr>";
+  h += "</table></div><div class='note'>" + T("Điểm số dùng phiên bản mới nhất của mỗi phương pháp. Việc trúng số không chứng minh phương pháp gây ra kết quả, và không nên sao chép số đã trúng vào vé tương lai.") + "</div></div>";
+  return h;
+}
+
 function unifiedPick(tickets, maxNumber) {
   const methods = latestMethodTickets(tickets);
   const votes = Array(maxNumber + 1).fill(0);
@@ -202,21 +252,26 @@ function unifiedPickHtml(g, draw) {
 // ---------------------------------------------------------------- 1. Tổng quan
 async function pOverview() {
   setMain(card(T("Tổng quan"), T("<div id='ov' class='note'>Đang tải…</div>")));
-  const [st, lm, lp, au, ac, bm, bp] = await Promise.all([api("/api/status"), api("/api/live?game=mega645"), api("/api/live?game=power655"),
-    api("/api/automation"), api("/api/acceptance"), api("/api/backtest?game=mega645"), api("/api/backtest?game=power655")]);
+  const [st, lm, lp, au, ac, bm, bp, dr] = await Promise.all([api("/api/status"), api("/api/live?game=mega645"), api("/api/live?game=power655"),
+    api("/api/automation"), api("/api/acceptance"), api("/api/backtest?game=mega645"), api("/api/backtest?game=power655"),
+    api("/api/draws?game=mega645&limit=3")]);
   if (!st.ok) { $("#ov").innerHTML = err(st.j); return; }
   if (!st.j.ready) { $("#ov").textContent = st.j.message_vi; return; }
   let h = "<div class='grid featured-grid'>";
   for (const [g, lv] of [["mega645", lm], ["power655", lp]]) {
-    const upcoming = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result) : null;
+    const upcoming = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result && !knownResultFor(g, x.draw_no)) : null;
     h += unifiedPickHtml(g, upcoming);
   }
-  h += "</div><div class='grid'>";
+  h += "</div>";
+  const scoreDraw = lm.ok && lm.j.draws ? (lm.j.draws.find(x => Array.isArray(x.result) && x.result.length === 6) || lm.j.draws.find(x => String(x.draw_no) === "01581")) : null;
+  const verificationRows = dr.ok && Array.isArray(dr.j.rows) ? dr.j.rows : [];
+  h += knownDrawScoreHtml("mega645", scoreDraw, verificationRows);
+  h += "<div class='grid'>";
   for (const [g, lv, bt] of [["mega645", lm, bm], ["power655", lp, bp]]) {
     const l = st.j.latest[g], d = (st.j.counts[g] || {});
     h += "<div class='goal'><b>" + GN[g] + T("</b>Kỳ mới nhất: ") + (l ? l.draw_no + " (" + esc(l.draw_date) + ")" : "—") + "<br>";
     for (const [k, v] of Object.entries(d)) h += "<span class='st " + k.replace(" ", "-") + "'>" + k + "</span> " + v + " ";
-    const up = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result) : null;
+    const up = lv.ok && lv.j.draws ? lv.j.draws.find(x => !x.result && !knownResultFor(g, x.draw_no)) : null;
     const last = lv.ok && lv.j.draws ? lv.j.draws.find(x => x.result) : null;
     h += "<div style='margin-top:6px'>" + (up ? T("Vé cho kỳ <b>") + up.draw_no + T("</b> (quay ") + fmtTime(up.draw_at) + T("): đã ghi ") + latestMethodTickets(up.tickets).length + T(" phương pháp")
           : T("Vé kỳ tới: sẽ ghi ở lần chạy kế tiếp")) + "</div>";
@@ -250,7 +305,7 @@ async function pPredict(g) {
     T("Mỗi phương pháp ghi một vé cho kỳ tới TRƯỚC giờ quay (CSDL từ chối vé ghi muộn). Vé được ghi ngay sau khi có kết quả kỳ trước: 3 kỳ mỗi tuần cho mỗi trò chơi.")));
   const [lv, bt] = await Promise.all([api("/api/live?game=" + g), api("/api/backtest?game=" + g)]);
   if (!lv.ok) { $("#pr").innerHTML = err(lv.j); return; }
-  const up = (lv.j.draws || []).find(x => !x.result);
+  const up = (lv.j.draws || []).find(x => !x.result && !knownResultFor(g, x.draw_no));
   let h = "";
   if (!up) h += T("<div>Vé cho kỳ tới sẽ được ghi ở lần chạy kế tiếp (sau khi có kết quả kỳ vừa quay).</div>");
   else {
