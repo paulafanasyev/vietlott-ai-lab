@@ -247,10 +247,13 @@ function unifiedPickHtml(g, draw) {
   const pick = unifiedPick(draw.tickets, MAXN[g]);
   if (!pick.methodCount) return "";
   const support = pick.numbers.map(n => T("số") + " " + n + ": " + pick.votes[n] + "/" + pick.methodCount).join(" · ");
+  const selectorLabel = pick.selector === "M16"
+    ? "<div><b>M16</b> " + T("được dùng làm vé thống nhất chính: bỏ phiếu có trọng số thích nghi.") + "</div>"
+    : "<div><b>" + pick.methodCount + "</b> " + T("phương pháp đã được gộp thành một dự đoán") + "</div>";
   return "<div class='featured'><div class='featured-title'>" + title + "</div>" +
     "<div class='note'>" + GN[g] + " · " + T("kỳ") + " " + esc(draw.draw_no) + "</div>" +
     "<div class='featured-balls'>" + balls(pick.numbers) + "</div>" +
-    "<div><b>" + pick.methodCount + "</b> " + T("phương pháp đã được gộp thành một dự đoán") + "</div>" +
+    selectorLabel +
     "<div class='featured-meta'>" + T("Số phiếu cho từng số đã chọn") + ": " + support + "</div>" +
     "<div class='featured-meta'>" + T("Vé chính lấy từ M16: bỏ phiếu có trọng số tự học theo kết quả các kỳ trước. Số phiếu hiển thị là tần suất chọn số trong các vé phương pháp, không phải xác suất số sẽ xuất hiện.") + "</div>" +
     "<div class='featured-meta'>" + T("Đây là tổng hợp các tổ hợp đã lưu, không phải bằng chứng rằng xác suất trúng độc đắc tăng lên.") + "</div></div>";
