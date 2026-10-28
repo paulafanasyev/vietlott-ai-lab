@@ -132,7 +132,6 @@ def _official_pdf_fallback(store: Store, http: Http, game: str, job_id: int, s: 
     official result is stored under the already-registered official source identity, so reconciliation
     can elevate a matching archive result to VERIFIED without weakening history or status rules.
     """
-    from .reconcile import VERIFIED
     r = s.sources.setdefault(OFFICIAL, SourceResult())
     latest = store.latest_observations(game)
     candidates = []
