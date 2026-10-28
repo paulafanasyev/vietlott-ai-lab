@@ -204,7 +204,7 @@ function knownDrawScoreHtml(g, draw, verificationRows) {
   h += "<div class='featured' style='margin-top:8px'><div class='featured-title'>" + T("Dự đoán tổng hợp cho kỳ") + " #" + esc(drawNo) + " (" + T("đánh giá hồi cứu") + ")</div>";
   h += "<div class='featured-balls'>" + balls(pick.numbers, pickMatched) + "</div>";
   h += "<div><b>" + T("Số khớp trong dự đoán tổng hợp") + ": " + pickMatched.length + "/6</b>" + (pickMatched.length ? " · " + pickMatched.map(n=>String(n).padStart(2,"0")).join(", ") : "") + "</div>";
-  h += "<div class='note'>" + T("Dự đoán tổng hợp được tính từ các vé đã lưu trước giờ quay, mỗi phương pháp một phiếu; đây là điểm số hồi cứu, không phải dự đoán cho kỳ kế tiếp.") + "</div></div>";
+  h += "<div class='note'>" + T("Điểm tổng hợp phản ánh vé M16 đã được lưu trước giờ quay; số phiếu là dữ liệu hỗ trợ, không giải thích nguyên nhân của kết quả ngẫu nhiên.") + "</div></div>";
   h += "<div style='margin:8px 0'><b>" + esc(best.code) + " v" + esc(String(best.version ?? "")) + "</b> — " + T("Phương pháp có kết quả tốt nhất ở kỳ này") + ": <b>" + best.matched.length + "/6</b>" + (best.matched.length ? " · " + best.matched.map(n=>String(n).padStart(2,"0")).join(", ") : "") + "</div>";
   h += "<div><b>" + T("Số phiếu cho từng số trúng") + "</b><div class='row' style='margin-top:6px'>";
   for (const n of sortedResult) {
@@ -225,10 +225,17 @@ function unifiedPick(tickets, maxNumber) {
     const own = new Set((method.numbers || []).map(Number));
     for (const n of own) if (Number.isInteger(n) && n >= 1 && n <= maxNumber) votes[n]++;
   }
-  const numbers = Array.from({length:maxNumber}, (_, i) => i + 1)
+  // Use the stored, weighted M16 ensemble as the one-ticket forecast.
+  // Raw per-method vote counts remain visible as supporting evidence, not as the selector.
+  const m16 = methods.find(m => m.code === "M16");
+  const m16Numbers = m16
+    ? [...new Set((m16.numbers || []).map(Number).filter(n => Number.isInteger(n) && n >= 1 && n <= maxNumber))]
+    : [];
+  const fallback = Array.from({length:maxNumber}, (_, i) => i + 1)
     .sort((a, b) => votes[b] - votes[a] || a - b)
     .slice(0, 6).sort((a, b) => a - b);
-  return {numbers, votes, methods, methodCount: methods.length};
+  const numbers = m16Numbers.length === 6 ? m16Numbers.sort((a, b) => a - b) : fallback;
+  return {numbers, votes, methods, methodCount: methods.length, selector: m16Numbers.length === 6 ? "M16" : "votes"};
 }
 
 function unifiedPickHtml(g, draw) {
@@ -245,7 +252,7 @@ function unifiedPickHtml(g, draw) {
     "<div class='featured-balls'>" + balls(pick.numbers) + "</div>" +
     "<div><b>" + pick.methodCount + "</b> " + T("phương pháp đã được gộp thành một dự đoán") + "</div>" +
     "<div class='featured-meta'>" + T("Số phiếu cho từng số đã chọn") + ": " + support + "</div>" +
-    "<div class='featured-meta'>" + T("Mỗi phương pháp chỉ có một phiếu, lấy phiên bản mới nhất. Nếu hòa, ưu tiên số nhỏ hơn để kết quả luôn xác định.") + "</div>" +
+    "<div class='featured-meta'>" + T("Vé chính lấy từ M16: bỏ phiếu có trọng số tự học theo kết quả các kỳ trước. Số phiếu hiển thị là tần suất chọn số trong các vé phương pháp, không phải xác suất số sẽ xuất hiện.") + "</div>" +
     "<div class='featured-meta'>" + T("Đây là tổng hợp các tổ hợp đã lưu, không phải bằng chứng rằng xác suất trúng độc đắc tăng lên.") + "</div></div>";
 }
 
