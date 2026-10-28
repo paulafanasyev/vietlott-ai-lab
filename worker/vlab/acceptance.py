@@ -31,9 +31,10 @@ def run_acceptance(conn) -> dict:
         if row and row[0]:
             add("Thu thập từ nguồn chính thức vietlott.vn", PASS, f"Lần gần nhất thành công (HTTP {row[1]}); {n_ver} kỳ VERIFIED.")
         else:
+            reason = (f"Lần gần nhất HTTP {row[1]}: điểm cuối chính thức không trả dữ liệu xác minh được từ môi trường triển khai hiện tại. "
+                      if row else "Chưa có lần truy cập chính thức thành công. ")
             add("Thu thập từ nguồn chính thức vietlott.vn", FAIL,
-                (f"Lần gần nhất HTTP {row[1]}: vietlott.vn chặn máy chủ ngoài Việt Nam (Vercel đặt tại Mỹ). " if row else
-                 "Chưa có lần truy cập. ") + "Vì vậy chưa kỳ nào được VERIFIED; cần máy chủ/proxy đặt tại Việt Nam.")
+                reason + f"Hiện có {n_ver} kỳ VERIFIED. Không tự nâng trạng thái khi nguồn chính thức không truy cập được; kết quả đã đối chiếu qua kho lưu trữ vẫn giữ trạng thái CROSS-CHECKED.")
         # 2. Đối chiếu kho lưu trữ
         cur.execute("SELECT game, status, count(*) FROM draw_current GROUP BY 1, 2 ORDER BY 1, 2")
         counts = cur.fetchall()
