@@ -10,7 +10,7 @@ from .reconcile import CONFLICT
 from .schedule import scheduled_after
 from .sources.archives import ARCHIVES, decode
 from .sources.http import FetchError, FetchRecord, Http, utc_now
-from .sources.official import BASE as OFFICIAL_BASE, SOURCE_CODE as OFFICIAL, OfficialClient
+from .sources.official import (BASE as OFFICIAL_BASE, SOURCE_CODE as OFFICIAL, OfficialClient,\n                               parse_official_pdf, validate_official_pdf_url)
 from .store import Store
 
 LOCK = "ingest"
@@ -39,8 +39,13 @@ class GameSummary:
 
     @property
     def all_ok(self) -> bool:
-        return bool(self.sources) and all(r.reachable and r.parsed > 0 and r.pages_failed == 0
-                                          for r in self.sources.values())
+        if not self.sources:
+            return False
+        return all(
+            r.reachable and r.parsed > 0
+            and (r.pages_failed == 0 or (code == OFFICIAL and r.fallback_used))
+            for code, r in self.sources.items()
+        )
 
 
 def _official(store: Store, client: OfficialClient, game: str, job_id: int, pages: int, s: GameSummary) -> None:
@@ -120,6 +125,75 @@ def _archive(store: Store, http: Http, code: str, game: str, job_id: int, s: Gam
         s.archive_latest = max(s.archive_latest or 0, max(int(o.draw_no) for o in obs))
 
 
+def _official_pdf_fallback(store: Store, http: Http, game: str, job_id: int, s: GameSummary) -> None:
+    """Use the archive's official-PDF evidence link when the live official Ajax endpoint is blocked.
+
+    The PDF host, path, product and draw number are validated before any request. The parsed
+    official result is stored under the already-registered official source identity, so reconciliation
+    can elevate a matching archive result to VERIFIED without weakening history or status rules.
+    """
+    from .reconcile import VERIFIED
+    r = s.sources.setdefault(OFFICIAL, SourceResult())
+    latest = store.latest_observations(game)
+    candidates = []
+    for draw_no, pairs in latest.items():
+        for oid, obs in pairs:
+            if obs.source == "pqminh4":
+                candidates.append((draw_no, oid, obs, pairs))
+    if not candidates:
+        return
+    draw_no, _, archive_obs, pairs = max(candidates, key=lambda row: row[0])
+    pdf_urls = [u for u in archive_obs.evidence_urls
+                if validate_official_pdf_url(game, f"{draw_no:05d}", u)]
+    if not pdf_urls:
+        return
+
+    # A stored official record that agrees with the currently cross-checked archive is still
+    # usable confirmation; don't fetch the same result PDF on every daily run.
+    official_same = any(obs.source == OFFICIAL and obs.result_signature() == archive_obs.result_signature()
+                        for _, obs in pairs)
+    if official_same:
+        r.reachable = True
+        r.parsed += 1
+        r.fallback_used = True
+        r.note = (f"AjaxPro hiện trả HTTP 403; kỳ {draw_no:05d} đã đối chiếu với bản ghi chính thức "
+                  "được lưu trước đó.")
+        return
+
+    failures = []
+    for pdf_url in pdf_urls[:2]:
+        try:
+            rec = http.request("GET", pdf_url)
+        except FetchError as exc:
+            store.record_fetch(OFFICIAL, game, exc.record, job_id)
+            r.pages_failed += 1
+            failures.append(exc.record.error_text or "không lấy được PDF")
+            continue
+        try:
+            obs = parse_official_pdf(game, f"{draw_no:05d}", pdf_url, rec.body,
+                                     rec.finished_at.isoformat() if rec.finished_at else utc_now().isoformat())
+        except Exception as exc:
+            store.record_fetch(OFFICIAL, game, rec, job_id, parsed=0,
+                               rejected=[f"PDF kỳ {draw_no:05d}: {type(exc).__name__}: {exc}"])
+            r.pages_failed += 1
+            failures.append(str(exc)[:180])
+            continue
+        fid = store.record_fetch(OFFICIAL, game, rec, job_id, parsed=1)
+        r.new += store.add_observations([obs], fid)
+        r.reachable = True
+        r.parsed += 1
+        r.fallback_used = True
+        if obs.result_signature() != archive_obs.result_signature():
+            r.note = (f"AjaxPro hiện trả HTTP 403; PDF chính thức kỳ {draw_no:05d} được đọc nhưng "
+                      "khác dữ liệu kho lưu trữ — đã chuyển sang đối chiếu CONFLICT.")
+        else:
+            r.note = (f"AjaxPro hiện trả HTTP 403; PDF kết quả chính thức kỳ {draw_no:05d} "
+                      "đã được tải và kiểm tra thành công.")
+        return
+    if failures:
+        r.note = ("AjaxPro HTTP 403; PDF chính thức chưa đọc được: " + "; ".join(failures))[:300]
+
+
 def ingest_game(store: Store, http: Http, game: str, job_id: int, *, official_pages: int = 1,
                 client: OfficialClient | None = None) -> GameSummary:
     g = get_game(game)
@@ -127,6 +201,7 @@ def ingest_game(store: Store, http: Http, game: str, job_id: int, *, official_pa
     _official(store, client or OfficialClient(http), game, job_id, official_pages, s)
     for code in ARCHIVES:
         _archive(store, http, code, game, job_id, s)
+    _official_pdf_fallback(store, http, game, job_id, s)
 
     changes = store.reconcile_game(game)
     s.changes = len(changes)
@@ -150,7 +225,8 @@ def summary_vi(summaries: list[GameSummary]) -> str:
     for s in summaries:
         lines.append(f"## {GAMES[s.game].name_vi}")
         for src, r in s.sources.items():
-            state = "truy cập được" if r.reachable else "KHÔNG truy cập được"
+            state = ("truy cập được qua PDF chính thức" if src == OFFICIAL and r.fallback_used else
+                     "truy cập được" if r.reachable else "KHÔNG truy cập được")
             lines.append(f"- Nguồn `{src}`: {state}; dòng hợp lệ: {r.parsed}; quan sát mới: {r.new}; "
                          f"dòng bị loại: {r.rejected}" + (f"; ghi chú: {r.note}" if r.note else ""))
         if s.official_latest and s.archive_latest and s.official_latest < s.archive_latest:
