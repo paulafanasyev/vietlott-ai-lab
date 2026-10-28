@@ -2,7 +2,7 @@ import random
 import unittest
 
 from vlab.backtest import goal_odds, match_probs, run_backtest
-from vlab.methods import BASE, CODES, EXTRA, State, all_tickets, m14_posterior_params, ticket
+from vlab.methods import BASE, CODES, EXTRA, METHOD_PARAMS, State, all_tickets, m14_posterior_params, ticket
 
 
 def fake_draws(n, max_number, seed=1):
@@ -56,6 +56,9 @@ class Methods(unittest.TestCase):
         self.assertAlmostEqual(alpha, prior_a + 3, places=12)
         self.assertAlmostEqual(beta, prior_b + 7, places=12)
         self.assertAlmostEqual(alpha + beta, 30.0, places=12)
+
+    def test_m14_implementation_is_versioned(self):
+        self.assertEqual(METHOD_PARAMS["M14"]["implementation"], "beta_bernoulli_thompson_v1")
 
     def test_online_learning_scores_use_the_actual_prediction_seed(self):
         """Learning must score the same seeded tickets used by walk-forward/live prediction."""
