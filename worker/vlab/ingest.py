@@ -10,7 +10,8 @@ from .reconcile import CONFLICT
 from .schedule import scheduled_after
 from .sources.archives import ARCHIVES, decode
 from .sources.http import FetchError, FetchRecord, Http, utc_now
-from .sources.official import (BASE as OFFICIAL_BASE, SOURCE_CODE as OFFICIAL, OfficialClient,\n                               parse_official_pdf, validate_official_pdf_url)
+from .sources.official import (BASE as OFFICIAL_BASE, SOURCE_CODE as OFFICIAL, OfficialClient,
+                               parse_official_pdf, validate_official_pdf_url)
 from .store import Store
 
 LOCK = "ingest"
@@ -172,6 +173,8 @@ def _official_pdf_fallback(store: Store, http: Http, game: str, job_id: int, s: 
             obs = parse_official_pdf(game, f"{draw_no:05d}", pdf_url, rec.body,
                                      rec.finished_at.isoformat() if rec.finished_at else utc_now().isoformat())
         except Exception as exc:
+            rec.ok = False
+            rec.error_text = f"PDF chính thức không hợp lệ: {type(exc).__name__}: {exc}"[:500]
             store.record_fetch(OFFICIAL, game, rec, job_id, parsed=0,
                                rejected=[f"PDF kỳ {draw_no:05d}: {type(exc).__name__}: {exc}"])
             r.pages_failed += 1
