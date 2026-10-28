@@ -254,15 +254,15 @@ async function pPredict(g) {
   let h = "";
   if (!up) h += T("<div>Vé cho kỳ tới sẽ được ghi ở lần chạy kế tiếp (sau khi có kết quả kỳ vừa quay).</div>");
   else {
-    h += T("<div style='font-size:16px;margin-top:6px'>К тиражу <b>") + esc(up.draw_no) + T("</b> · розыгрыш <b>") + fmtTime(up.draw_at) + T("</b> · прогнозы сохранены ") + fmtTime(up.created_at) + T("</div>");
+    h += T("<div style='font-size:16px;margin-top:6px'>Kỳ <b>") + esc(up.draw_no) + T("</b> · quay lúc <b>") + fmtTime(up.draw_at) + T("</b> · vé ghi lúc ") + fmtTime(up.created_at) + T("</div>");
     h += unifiedPickHtml(g, up);
-    h += "<div class='method-heading'>" + T("Отдельные прогнозы по методам расчёта") + "</div>";
-    h += "<div class='note'>" + T("Показана последняя версия каждого метода. Предыдущие версии остаются в истории.") + "</div>";
-    h += T("<table><tr><th>Метод</th><th>Комбинация</th><th>Как рассчитано</th></tr>");
+    h += "<div class='method-heading'>" + T("Dự đoán riêng của từng phương pháp tính toán") + "</div>";
+    h += "<div class='note'>" + T("Chỉ hiển thị phiên bản mới nhất của từng phương pháp. Các phiên bản cũ vẫn được giữ trong lịch sử.") + "</div>";
+    h += T("<table><tr><th>Phương pháp</th><th>Tổ hợp số</th><th>Cách tính</th></tr>");
     for (const t of latestMethodTickets(up.tickets)) {
       h += "<tr><td><b>" + esc(t.code) + " v" + esc(String(t.version ?? "")) + "</b></td><td>" + balls(t.numbers) + "</td><td class='note'>" + esc(tx(t.explanation_vi)) + "</td></tr>";
     }
-    h += T("</table><div id='sc' class='note'>Рассчитываем шансы для показанных методов…</div>");
+    h += T("</table><div id='sc' class='note'>Đang tính xác suất của các phương pháp được hiển thị…</div>");
   }
   const o = lv.j.goal_odds;
   if (o) {
