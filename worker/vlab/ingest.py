@@ -25,6 +25,7 @@ class SourceResult:
     rejected: int = 0
     pages_failed: int = 0     # số trang/tệp không lấy hoặc không phân tích được
     note: str = ""
+    fallback_used: bool = False  # chính thức qua PDF khi AjaxPro bị chặn
 
 
 @dataclass
