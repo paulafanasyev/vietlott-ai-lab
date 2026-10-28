@@ -154,6 +154,51 @@ function setChance(tickets, n) {
 function comb(n, r) { let x = 1; for (let i = 0; i < r; i++) x = x * (n - i) / (i + 1); return x; }
 function pAtLeast(n, m) { let s = 0; for (let j = m; j <= 6; j++) s += comb(6, j) * comb(n - 6, 6 - j) / comb(n, 6); return s; }
 
+// Current display shows the newest saved version of each method.
+// Historical versions stay in the database and in prediction history.
+function latestMethodTickets(tickets) {
+  const byCode = new Map();
+  for (const t of (tickets || [])) {
+    if (!t || !t.code || !Array.isArray(t.numbers)) continue;
+    const old = byCode.get(String(t.code));
+    if (!old || Number(t.version || 0) > Number(old.version || 0)) byCode.set(String(t.code), t);
+  }
+  return [...byCode.values()].sort((a, b) => String(a.code).localeCompare(String(b.code), undefined, {numeric:true}));
+}
+
+// Each distinct method gets one vote based on its latest version.
+// Ties are broken by number ascending for a deterministic, transparent result.
+function unifiedPick(tickets, maxNumber) {
+  const methods = latestMethodTickets(tickets);
+  const votes = Array(maxNumber + 1).fill(0);
+  for (const method of methods) {
+    const own = new Set((method.numbers || []).map(Number));
+    for (const n of own) if (Number.isInteger(n) && n >= 1 && n <= maxNumber) votes[n]++;
+  }
+  const numbers = Array.from({length:maxNumber}, (_, i) => i + 1)
+    .sort((a, b) => votes[b] - votes[a] || a - b)
+    .slice(0, 6).sort((a, b) => a - b);
+  return {numbers, votes, methods, methodCount: methods.length};
+}
+
+function unifiedPickHtml(g, draw) {
+  const title = T("Dự đoán tổng hợp từ tất cả phương pháp");
+  if (!draw || !Array.isArray(draw.tickets) || !draw.tickets.length) {
+    return "<div class='featured'><div class='featured-title'>" + title + "</div><div class='note'>" +
+      T("Bản hợp nhất sẽ xuất hiện sau khi có dự đoán được lưu cho kỳ tiếp theo.") + "</div></div>";
+  }
+  const pick = unifiedPick(draw.tickets, MAXN[g]);
+  if (!pick.methodCount) return "";
+  const support = pick.numbers.map(n => T("số") + " " + n + ": " + pick.votes[n] + "/" + pick.methodCount).join(" · ");
+  return "<div class='featured'><div class='featured-title'>" + title + "</div>" +
+    "<div class='note'>" + GN[g] + " · " + T("kỳ") + " " + esc(draw.draw_no) + "</div>" +
+    "<div class='featured-balls'>" + balls(pick.numbers) + "</div>" +
+    "<div><b>" + pick.methodCount + "</b> " + T("phương pháp đã được gộp thành một dự đoán") + "</div>" +
+    "<div class='featured-meta'>" + T("Số phiếu cho từng số đã chọn") + ": " + support + "</div>" +
+    "<div class='featured-meta'>" + T("Mỗi phương pháp chỉ có một phiếu, lấy phiên bản mới nhất. Nếu hòa, ưu tiên số nhỏ hơn để kết quả luôn xác định.") + "</div>" +
+    "<div class='featured-meta'>" + T("Đây là tổng hợp các tổ hợp đã lưu, không phải bằng chứng rằng xác suất trúng độc đắc tăng lên.") + "</div></div>";
+}
+
 // ---------------------------------------------------------------- 1. Tổng quan
 async function pOverview() {
   setMain(card(T("Tổng quan"), T("<div id='ov' class='note'>Đang tải…</div>")));
