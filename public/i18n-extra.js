@@ -61,6 +61,14 @@ window.RU_EXTRA = {
   "Số trúng": "Совпадения",
   "Cách tính": "Как рассчитан билет",
   "Điểm số dùng phiên bản mới nhất của mỗi phương pháp. Việc trúng số không chứng minh phương pháp gây ra kết quả, và không nên sao chép số đã trúng vào vé tương lai.": "Оценка использует последнюю версию каждого метода. Совпадение не означает, что метод вызвал результат; не переносите выигравшие числа в будущие билеты.",
+  "Kết quả được lấy từ bản ghi live; trạng thái xác minh bên dưới": "Результат взят из live-записи; статус проверки указан ниже",
+  "Kết quả do người dùng cung cấp; chờ xác minh trong cơ sở dữ liệu": "Результат предоставлен пользователем; ожидает проверки в базе данных",
+  "Trạng thái xác minh trong CSDL": "Статус проверки в базе данных",
+  "Chưa tải được danh sách vé đã lưu cho kỳ này; chưa thể tính điểm cho từng phương pháp.": "Список сохранённых билетов этого тиража не загружен; оценить каждый метод пока нельзя.",
+  "Dự đoán tổng hợp cho kỳ": "Единый прогноз для тиража",
+  "đánh giá hồi cứu": "ретроспективная оценка",
+  "Chỉ có một nhóm nguồn gốc (vietvudanh); cần thêm xác nhận": "В базе пока только один источник (vietvudanh); требуется дополнительное подтверждение"
+
 };
 // Tiêu đề giả thuyết có dạng «[Mega 6/45] …»: mẫu khớp phần cuối, giữ nguyên tiền tố trò chơi.
 window.RU_PATTERNS = [
