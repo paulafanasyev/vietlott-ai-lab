@@ -149,18 +149,8 @@ def _official_pdf_fallback(store: Store, http: Http, game: str, job_id: int, s: 
     if not pdf_urls:
         return
 
-    # A stored official record that agrees with the currently cross-checked archive is still
-    # usable confirmation; don't fetch the same result PDF on every daily run.
-    official_same = any(obs.source == OFFICIAL and obs.result_signature() == archive_obs.result_signature()
-                        for _, obs in pairs)
-    if official_same:
-        r.reachable = True
-        r.parsed += 1
-        r.fallback_used = True
-        r.note = (f"AjaxPro hiện trả HTTP 403; kỳ {draw_no:05d} đã đối chiếu với bản ghi chính thức "
-                  "được lưu trước đó.")
-        return
-
+    # Fetch the current official PDF on every run. This keeps a successful official-source
+    # attempt in the audit log even when the resulting observation is identical to an older one.
     failures = []
     for pdf_url in pdf_urls[:2]:
         try:
