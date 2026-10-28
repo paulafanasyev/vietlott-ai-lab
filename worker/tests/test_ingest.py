@@ -135,7 +135,9 @@ class OfficialPDFFallback(unittest.TestCase):
             _official_pdf_fallback(store, http, "mega645", 7, summary)
 
         result = summary.sources["vietlott_ajax"]
-        self.assertEqual(http.calls, [("GET", pdf)])
+        self.assertEqual(len(http.calls), 1)
+        self.assertEqual(http.calls[0][0:2], ("GET", pdf))
+        self.assertEqual(http.calls[0][2]["headers"]["Referer"], "https://www.vietlott.vn/")
         self.assertEqual(len(store.fetches), 1)
         self.assertEqual(store.fetches[0][0:2], ("vietlott_ajax", "mega645"))
         self.assertTrue(store.fetches[0][2].ok)
