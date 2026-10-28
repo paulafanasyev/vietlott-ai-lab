@@ -165,16 +165,16 @@ def parse_list_html(game: str, html: str, *, source_url: str, observed_at: str) 
 # endpoint may return HTTP 403 from cloud regions, while the result PDFs are public.
 # The URL is strictly constrained because it originates in a third-party archive record.
 _OFFICIAL_PDF_PATH = re.compile(
-    r"^/main/\\d{1,2}\\.\\d{4}/system/game\\.pdf\\.result/"
-    r"(\\d{5})_(mega|power)_a[45]_(\\d{5})\\.pdf$"
+    r"^/main/\d{1,2}\.\d{4}/system/game\.pdf\.result/"
+    r"(\d{5})_(mega|power)_a[45]_(\d{5})\.pdf$"
 )
 _OFFICIAL_PDF_NUMBERS = re.compile(
-    r"(?<!\\d)(\\d{2})\\s+(\\d{2})\\s+(\\d{2})\\s+"
-    r"(\\d{2})\\s+(\\d{2})\\s+(\\d{2})(?:\\s*\\|\\s*(\\d{2}))?"
+    r"(?<!\d)(\d{2})\s+(\d{2})\s+(\d{2})\s+"
+    r"(\d{2})\s+(\d{2})\s+(\d{2})(?:\s*\|\s*(\d{2}))?"
 )
 _OFFICIAL_PDF_DRAW = re.compile(
-    r"K\\s*ỳ\\s*quay\\s*thưởng\\s*:\\s*(\\d{5})\\s*\\|\\s*"
-    r"Ngày\\s*quay\\s*thưởng\\s*:\\s*(\\d{2}/\\d{2}/\\d{4})",
+    r"K\s*ỳ\s*quay\s*thưởng\s*:\s*(\d{5})\s*\|\s*"
+    r"Ngày\s*quay\s*thưởng\s*:\s*(\d{2}/\d{2}/\d{4})",
     re.IGNORECASE,
 )
 
@@ -238,7 +238,7 @@ def parse_official_pdf(game: str, draw_no: str, pdf_url: str, raw: bytes,
         reader = PdfReader(BytesIO(raw), strict=True)
         if not reader.pages or len(reader.pages) > 5:
             raise ValueError("PDF có số trang không hợp lệ")
-        text = "\\n".join(page.extract_text() or "" for page in reader.pages)
+        text = "\n".join(page.extract_text() or "" for page in reader.pages)
     except Exception as exc:
         raise ValueError(f"Không đọc được PDF chính thức: {type(exc).__name__}: {exc}") from exc
     if not text.strip():
