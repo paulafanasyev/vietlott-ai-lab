@@ -60,6 +60,24 @@ class Methods(unittest.TestCase):
     def test_m14_implementation_is_versioned(self):
         self.assertEqual(METHOD_PARAMS["M14"]["implementation"], "beta_bernoulli_thompson_v1")
 
+    def test_power_bonus_and_jackpot2_are_scored_separately(self):
+        history = fake_draws(100, 55, seed=19)
+        state = State(55)
+        for draw_no, numbers in history:
+            state.add(numbers, seed_key=f"power655|{draw_no}")
+        ticket_m0 = all_tickets(state, "power655|101")["M0"]
+        outside = next(number for number in range(1, 56) if number not in ticket_m0)
+        actual_main = tuple(sorted(ticket_m0[:5] + (outside,)))
+        bonus = ticket_m0[5]
+        draws = [(n, nums, None) for n, nums in history] + [(101, actual_main, bonus)]
+
+        result = run_backtest("power655", 55, draws)
+        m0 = next(method for method in result["methods"] if method["code"] == "M0")
+        self.assertEqual(m0["counts"]["5"], 1)
+        self.assertEqual(m0["special_number"]["actual"], 1)
+        self.assertEqual(m0["jackpot2"]["actual"], 1)
+        self.assertEqual(result["power_jackpot2_odds"]["one_in"], 98604)
+
     def test_online_learning_scores_use_the_actual_prediction_seed(self):
         """Learning must score the same seeded tickets used by walk-forward/live prediction."""
         draws = fake_draws(110, 45, seed=93)
