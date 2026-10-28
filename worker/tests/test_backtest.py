@@ -60,6 +60,15 @@ class Methods(unittest.TestCase):
     def test_m14_implementation_is_versioned(self):
         self.assertEqual(METHOD_PARAMS["M14"]["implementation"], "beta_bernoulli_thompson_v1")
 
+    def test_m16_uses_broader_consensus_without_random_or_coverage_countervote(self):
+        from vlab.methods import VOTERS
+        self.assertIn("M7", VOTERS)
+        self.assertIn("M8", VOTERS)
+        self.assertNotIn("M0", VOTERS)
+        self.assertNotIn("M12", VOTERS)
+        self.assertNotIn("M16", VOTERS)
+        self.assertEqual(METHOD_PARAMS["M16"]["voters"], list(VOTERS))
+
     def test_power_bonus_and_jackpot2_are_scored_separately(self):
         history = fake_draws(100, 55, seed=19)
         state = State(55)

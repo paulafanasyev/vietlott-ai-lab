@@ -54,8 +54,8 @@ METHODS: tuple[Method, ...] = (
            "Mỗi số có hậu nghiệm Beta-Bernoulli: tính cả số lần xuất hiện và vắng mặt; lấy mẫu xác suất rồi chọn 6 số cao nhất."),
     Method("M15", "Chu kỳ riêng của từng số",
            "Với khoảng cách hiện tại từ lần về cuối, tính tỷ lệ «về ngay ở khoảng cách này» theo lịch sử riêng của từng số."),
-    Method("M16", "Bỏ phiếu tự học (M1–M15)",
-           "Mỗi phương pháp bỏ phiếu cho 6 số của mình; phiếu có trọng số tự cập nhật sau mỗi kỳ theo thành tích gần đây (Hedge)."),
+    Method("M16", "Bỏ phiếu hợp nhất đa phương pháp",
+           "Tổng hợp phiếu có trọng số từ M1–M11, M13–M15, gồm cả hai tổ hợp M7/M8; trọng số tự cập nhật theo kết quả các kỳ trước. Loại vé ngẫu nhiên M0 và vé phủ ngược M12 khỏi đồng thuận."),
 )
 BASE = ("M1", "M2", "M3", "M4", "M5", "M6")
 FAMILY = {"M0": "random", "M1": "statistics", "M2": "statistics", "M3": "statistics", "M4": "statistics",
@@ -63,8 +63,9 @@ FAMILY = {"M0": "random", "M1": "statistics", "M2": "statistics", "M3": "statist
           "M9": "ml", "M10": "montecarlo", "M11": "statistics", "M12": "coverage",
           "M13": "timeseries", "M14": "montecarlo", "M15": "timeseries", "M16": "ensemble"}
 CODES = tuple(m.code for m in METHODS)
-# M16: các phương pháp được bỏ phiếu (không gồm M0 ngẫu nhiên, các tổ hợp M7/M8/M12/M16).
-VOTERS = ("M1", "M2", "M3", "M4", "M5", "M6", "M9", "M10", "M11", "M13", "M14", "M15")
+# M16 bỏ phiếu cho các phương pháp dự báo và hai tổ hợp M7/M8.
+# Loại M0 (ngẫu nhiên), M12 (cố ý phủ số ít được chọn) và chính M16 để tránh tự bỏ phiếu.
+VOTERS = ("M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9", "M10", "M11", "M13", "M14", "M15")
 EXTRA = tuple(c for c in VOTERS if c not in BASE)
 
 
@@ -102,19 +103,22 @@ class State:
         # Use the exact seed key used when the method's ticket was generated for this draw.
         # Otherwise keep a deterministic fallback for generic callers/tests.
         training_key = seed_key if seed_key is not None else f"learn|{t}"
-        # Before recording this draw, score tickets selected from prior history only.
+        # Score every ticket from the same pre-draw state before changing any learner weights.
+        # This is especially important for M8 and M16: updating BASE scores first would leak
+        # the just-observed draw into the ticket used to score an aggregate method.
         if self.history:
             mu = 36 / self.n
             actual = set(draw)
+            scored = {
+                c: len(actual.intersection(ticket(self, c, training_key)))
+                for c in (*BASE, *EXTRA)
+            }
             for c in BASE:
-                hits = len(actual.intersection(ticket(self, c, training_key)))
+                hits = scored[c]
                 self.learn_hits[c] += hits
                 self.learn_score[c] = self.learn_score[c] * self.learn_decay + (hits - mu)
-        actual = set(draw)
-        if self.history:
-            mu = 36 / self.n
             for c in EXTRA:
-                hits = len(actual.intersection(ticket(self, c, training_key)))
+                hits = scored[c]
                 self.ext_score[c] = self.ext_score[c] * self.learn_decay + (hits - mu)
             prev = set(self.history[-1])
             for x in range(1, self.n + 1):
