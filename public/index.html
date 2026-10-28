@@ -173,27 +173,35 @@ function knownResultFor(g, drawNo) {
   if (g === "mega645" && String(drawNo) === "01581") return [1, 9, 11, 28, 33, 42];
   return null;
 }
-function knownDrawScoreHtml(g, draw) {
-  const known = knownResultFor(g, "01581");
-  if (!known) return "";
+function knownDrawScoreHtml(g, draw, verificationRows) {
+  const hasStoredResult = !!(draw && Array.isArray(draw.result) && draw.result.length === 6);
+  const known = hasStoredResult ? draw.result.map(Number) : (draw ? knownResultFor(g, draw.draw_no) : knownResultFor(g, "01581"));
+  if (!known || known.length !== 6) return "";
+  const drawNo = String((draw && draw.draw_no) || "01581");
   const result = new Set(known);
+  const verified = (verificationRows || []).find(r => String(r.draw_no) === drawNo);
+  const statuses = ["VERIFIED","CROSS-CHECKED","NOT PROVEN","CONFLICT","PENDING"];
+  const dbStatus = statuses.includes(verified && verified.status) ? verified.status : "PENDING";
+  const reason = verified && verified.reason_vi ? verified.reason_vi : "";
   const rows = latestMethodTickets(draw && Array.isArray(draw.tickets) ? draw.tickets : []).map(t => ({
     ...t,
     matched: [...new Set((t.numbers || []).map(Number))].filter(n => result.has(n)).sort((a,b)=>a-b)
   })).sort((a,b) => b.matched.length - a.matched.length || String(a.code).localeCompare(String(b.code), undefined, {numeric:true}));
   const sortedResult = [...result].sort((a,b)=>a-b);
   let h = "<div class='goal' style='grid-column:1/-1;margin-top:10px'><b>" + T("Kiểm tra kết quả gần nhất") + "</b>";
-  h += "<div class='note'>" + GN[g] + " · " + T("kỳ") + " 01581 · " + T("Kết quả do người dùng cung cấp, trùng với các công bố bên ngoài; chưa xác minh chính thức trong cơ sở dữ liệu") + "</div>";
+  h += "<div class='note'>" + GN[g] + " · " + T("kỳ") + " " + esc(drawNo) + " · " + T(hasStoredResult ? "Kết quả được lấy từ bản ghi live; trạng thái xác minh bên dưới" : "Kết quả do người dùng cung cấp; chờ xác minh trong cơ sở dữ liệu") + "</div>";
+  h += "<div class='note'>" + T("Trạng thái xác minh trong CSDL") + ": <span class='st " + dbStatus.replace(/ /g,"-") + "'>" + esc(dbStatus) + "</span></div>";
+  if (reason) h += "<div class='note'>" + esc(T(reason)) + "</div>";
   h += "<div class='featured-balls'>" + balls(sortedResult) + "</div>";
   if (!rows.length) {
-    h += "<div class='note'>" + T("Chưa tải được danh sách vé đã lưu cho kỳ này; kết quả chưa được ghi vào lịch sử cơ sở dữ liệu.") + "</div>";
+    h += "<div class='note'>" + T("Chưa tải được danh sách vé đã lưu cho kỳ này; chưa thể tính điểm cho từng phương pháp.") + "</div>";
     h += "<div class='note'>" + T("Các số trúng được hiển thị ở đây chỉ dùng để đánh giá hồi cứu, không được tự động đưa vào dự đoán kỳ tiếp theo.") + "</div></div>";
     return h;
   }
   const best = rows[0];
   const pick = unifiedPick(rows, MAXN[g]);
   const pickMatched = pick.numbers.filter(n => result.has(n));
-  h += "<div class='featured' style='margin-top:8px'><div class='featured-title'>" + T("Dự đoán tổng hợp cho kỳ #01581 (đánh giá hồi cứu)") + "</div>";
+  h += "<div class='featured' style='margin-top:8px'><div class='featured-title'>" + T("Dự đoán tổng hợp cho kỳ") + " #" + esc(drawNo) + " (" + T("đánh giá hồi cứu") + ")</div>";
   h += "<div class='featured-balls'>" + balls(pick.numbers, pickMatched) + "</div>";
   h += "<div><b>" + T("Số khớp trong dự đoán tổng hợp") + ": " + pickMatched.length + "/6</b>" + (pickMatched.length ? " · " + pickMatched.map(n=>String(n).padStart(2,"0")).join(", ") : "") + "</div>";
   h += "<div class='note'>" + T("Dự đoán tổng hợp được tính từ các vé đã lưu trước giờ quay, mỗi phương pháp một phiếu; đây là điểm số hồi cứu, không phải dự đoán cho kỳ kế tiếp.") + "</div></div>";
@@ -244,8 +252,9 @@ function unifiedPickHtml(g, draw) {
 // ---------------------------------------------------------------- 1. Tổng quan
 async function pOverview() {
   setMain(card(T("Tổng quan"), T("<div id='ov' class='note'>Đang tải…</div>")));
-  const [st, lm, lp, au, ac, bm, bp] = await Promise.all([api("/api/status"), api("/api/live?game=mega645"), api("/api/live?game=power655"),
-    api("/api/automation"), api("/api/acceptance"), api("/api/backtest?game=mega645"), api("/api/backtest?game=power655")]);
+  const [st, lm, lp, au, ac, bm, bp, dr] = await Promise.all([api("/api/status"), api("/api/live?game=mega645"), api("/api/live?game=power655"),
+    api("/api/automation"), api("/api/acceptance"), api("/api/backtest?game=mega645"), api("/api/backtest?game=power655"),
+    api("/api/draws?game=mega645&limit=3")]);
   if (!st.ok) { $("#ov").innerHTML = err(st.j); return; }
   if (!st.j.ready) { $("#ov").textContent = st.j.message_vi; return; }
   let h = "<div class='grid featured-grid'>";
@@ -254,7 +263,9 @@ async function pOverview() {
     h += unifiedPickHtml(g, upcoming);
   }
   h += "</div>";
-  h += knownDrawScoreHtml("mega645", lm.ok && lm.j.draws ? lm.j.draws.find(x => String(x.draw_no) === "01581") : null);
+  const scoreDraw = lm.ok && lm.j.draws ? (lm.j.draws.find(x => Array.isArray(x.result) && x.result.length === 6) || lm.j.draws.find(x => String(x.draw_no) === "01581")) : null;
+  const verificationRows = dr.ok && Array.isArray(dr.j.rows) ? dr.j.rows : [];
+  h += knownDrawScoreHtml("mega645", scoreDraw, verificationRows);
   h += "<div class='grid'>";
   for (const [g, lv, bt] of [["mega645", lm, bm], ["power655", lp, bp]]) {
     const l = st.j.latest[g], d = (st.j.counts[g] || {});
