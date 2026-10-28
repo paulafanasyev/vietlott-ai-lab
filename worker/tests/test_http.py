@@ -40,6 +40,7 @@ def http(s, **kw):
 class HttpTest(unittest.TestCase):
     def test_allowlist(self):
         self.assertTrue(is_allowed("https://vietlott.vn/ajaxpro/"))
+        self.assertTrue(is_allowed("https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf"))
         self.assertTrue(is_allowed("https://raw.githubusercontent.com/a/b"))
         for bad in ("http://vietlott.vn/", "https://vietlott.vn.evil.com/", "https://evil.com/",
                     "https://user@vietlott.vn/", "https://u:p@vietlott.vn/", "https://vietlott.vn:8443/",
