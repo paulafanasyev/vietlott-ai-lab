@@ -183,11 +183,12 @@ def validate_official_pdf_url(game: str, draw_no: str, url: str) -> bool:
     """Allow only a real official result PDF for the requested game/draw."""
     try:
         parsed = urlparse(url)
-    except ValueError:
+        port = parsed.port
+    except (TypeError, ValueError):
         return False
     match = _OFFICIAL_PDF_PATH.fullmatch(parsed.path)
     if (parsed.scheme != "https" or parsed.hostname != "media.vietlott.vn"
-            or parsed.port not in (None, 443) or parsed.username or parsed.password
+            or port not in (None, 443) or parsed.username or parsed.password
             or parsed.query or parsed.fragment or not match):
         return False
     expected_product = "mega" if game == "mega645" else "power" if game == "power655" else None
