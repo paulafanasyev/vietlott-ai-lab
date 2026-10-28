@@ -26,6 +26,19 @@ class IngestUnit(unittest.TestCase):
         self.assertTrue(s.all_ok)
         self.assertFalse(GameSummary("mega645").all_ok)
 
+    def test_official_pdf_fallback_recovers_only_the_official_transport_failure(self):
+        s = GameSummary("mega645", sources={
+            "vietlott_ajax": SourceResult(reachable=True, parsed=1, pages_failed=1, fallback_used=True),
+            "pqminh4": SourceResult(reachable=True, parsed=10),
+            "nhanaz": SourceResult(reachable=True, parsed=9),
+        })
+        self.assertTrue(s.all_ok)
+        s.sources["pqminh4"].pages_failed = 1
+        self.assertFalse(s.all_ok)
+        s.sources["pqminh4"].pages_failed = 0
+        s.sources["vietlott_ajax"].fallback_used = False
+        self.assertFalse(s.all_ok)
+
     def test_summary_is_vietnamese_and_flags_stale_official(self):
         s = GameSummary("power655", sources={"vietlott_ajax": SourceResult(True, 8, 0)},
                         official_latest=1405, archive_latest=1411, status_counts={"VERIFIED": 10})
@@ -61,6 +74,43 @@ class FakeStore:
     def add_observations(self, obs, fid):
         self.added.append((fid, [o.draw_no for o in obs]))
         return len(obs)
+
+
+class OfficialPDFFallback(unittest.TestCase):
+    def test_existing_official_observation_confirms_pdf_fallback_without_refetch(self):
+        from datetime import date
+        from vlab.ingest import _official_pdf_fallback
+        from vlab.models import Observation
+
+        pdf = "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf"
+        archive_obs = Observation.build(
+            source="pqminh4", game="mega645", draw_no="01580", draw_date=date(2026, 10, 25),
+            main_numbers=[4, 13, 22, 25, 40, 41], bonus_number=None,
+            source_url="https://raw.githubusercontent.com/pqminh-4/vietlott-data/main/data/canonical/mega645.jsonl",
+            evidence_urls=[pdf], observed_at=AT,
+        )
+        official_obs = Observation.build(
+            source="vietlott_ajax", game="mega645", draw_no="01580", draw_date=date(2026, 10, 25),
+            main_numbers=[4, 13, 22, 25, 40, 41], bonus_number=None,
+            source_url=pdf, evidence_urls=[pdf], observed_at=AT,
+        )
+
+        class S:
+            def latest_observations(self, game):
+                self.assert_game = game
+                return {1580: [(1, archive_obs), (2, official_obs)]}
+
+        class NeverFetch:
+            def request(self, *args, **kwargs):
+                raise AssertionError("stored official evidence should avoid repeated PDF download")
+
+        summary = GameSummary("mega645")
+        _official_pdf_fallback(S(), NeverFetch(), "mega645", 7, summary)
+        result = summary.sources["vietlott_ajax"]
+        self.assertTrue(result.reachable)
+        self.assertTrue(result.fallback_used)
+        self.assertEqual(result.parsed, 1)
+        self.assertIn("bản ghi chính thức", result.note)
 
 
 class OfficialAcrossPages(unittest.TestCase):
