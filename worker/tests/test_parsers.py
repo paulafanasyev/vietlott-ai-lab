@@ -65,11 +65,11 @@ class OfficialPDFParser(unittest.TestCase):
     def test_official_mega_pdf_text(self):
         url = "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf"
         text = (
-            "KẾT QUẢ TRÚNG THƯỞNG MEGA 645\\n"
-            "Kỳ quay thưởng: 01580 | Ngày quay thưởng: 25/10/2026\\n"
-            "16.103.186.000 đ\\n"
-            "04 13 22 25 40 41\\n"
-            "KẾT QUẢ QUAY SỐ MỞ THƯỞNG 05 KỲ LIỀN TRƯỚC\\n"
+            "KẾT QUẢ TRÚNG THƯỞNG MEGA 645\n"
+            "Kỳ quay thưởng: 01580 | Ngày quay thưởng: 25/10/2026\n"
+            "16.103.186.000 đ\n"
+            "04 13 22 25 40 41\n"
+            "KẾT QUẢ QUAY SỐ MỞ THƯỞNG 05 KỲ LIỀN TRƯỚC\n"
             "01579 23/10/2026 02-05-11-22-32-40"
         )
         obs = parse_official_pdf_text("mega645", "01580", url, text, AT)
@@ -83,11 +83,11 @@ class OfficialPDFParser(unittest.TestCase):
     def test_official_power_pdf_text(self):
         url = "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01416_power_a5_01416.pdf"
         text = (
-            "KẾT QUẢ TRÚNG THƯỞNG POWER 655\\n"
-            "Kỳ quay thưởng: 01416 | Ngày quay thưởng: 27/10/2026\\n"
-            "31.758.267.450 đ\\n"
-            "09 18 27 28 31 35 |50\\n"
-            "KẾT QUẢ QUAY SỐ MỞ THƯỞNG 05 KỲ LIỀN TRƯỚC\\n"
+            "KẾT QUẢ TRÚNG THƯỞNG POWER 655\n"
+            "Kỳ quay thưởng: 01416 | Ngày quay thưởng: 27/10/2026\n"
+            "31.758.267.450 đ\n"
+            "09 18 27 28 31 35 |50\n"
+            "KẾT QUẢ QUAY SỐ MỞ THƯỞNG 05 KỲ LIỀN TRƯỚC\n"
             "01415 24/10/2026 06-07-18-41-44-50 | 53"
         )
         obs = parse_official_pdf_text("power655", "01416", url, text, AT)
@@ -111,7 +111,7 @@ class OfficialPDFParser(unittest.TestCase):
 
     def test_pdf_must_match_header_and_game_format(self):
         url = "https://media.vietlott.vn/main/10.2026/system/game.pdf.result/01580_mega_a5_01580.pdf"
-        text = "Kỳ quay thưởng: 01579 | Ngày quay thưởng: 23/10/2026\\n04 13 22 25 40 41"
+        text = "Kỳ quay thưởng: 01579 | Ngày quay thưởng: 23/10/2026\n04 13 22 25 40 41"
         with self.assertRaises(ValueError):
             parse_official_pdf_text("mega645", "01580", url, text, AT)
         with self.assertRaises(ValueError):
