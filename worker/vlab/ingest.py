@@ -154,7 +154,16 @@ def _official_pdf_fallback(store: Store, http: Http, game: str, job_id: int, s: 
     failures = []
     for pdf_url in pdf_urls[:2]:
         try:
-            rec = http.request("GET", pdf_url)
+            rec = http.request(
+                "GET", pdf_url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                                  "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                    "Accept": "application/pdf,application/octet-stream;q=0.9,*/*;q=0.8",
+                    "Accept-Language": "vi-VN,vi;q=0.9,en;q=0.7",
+                    "Referer": "https://www.vietlott.vn/",
+                },
+            )
         except FetchError as exc:
             store.record_fetch(OFFICIAL, game, exc.record, job_id)
             r.pages_failed += 1
