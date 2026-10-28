@@ -254,9 +254,15 @@ async function pPredict(g) {
   let h = "";
   if (!up) h += T("<div>Vé cho kỳ tới sẽ được ghi ở lần chạy kế tiếp (sau khi có kết quả kỳ vừa quay).</div>");
   else {
-    h += T("<div style='font-size:16px;margin-top:6px'>Kỳ <b>") + up.draw_no + T("</b> · quay lúc <b>") + fmtTime(up.draw_at) + T("</b> · vé ghi lúc ") + fmtTime(up.created_at) + T("</div><table><tr><th>Phương pháp</th><th>Vé</th><th>Giải thích</th></tr>");
-    for (const t of up.tickets) h += "<tr><td><b>" + t.code + "</b></td><td>" + balls(t.numbers) + "</td><td class='note'>" + esc(tx(t.explanation_vi)) + "</td></tr>";
-    h += T("</table><div id='sc' class='note'>Đang tính xác suất của cả bộ vé…</div>");
+    h += T("<div style='font-size:16px;margin-top:6px'>К тиражу <b>") + esc(up.draw_no) + T("</b> · розыгрыш <b>") + fmtTime(up.draw_at) + T("</b> · прогнозы сохранены ") + fmtTime(up.created_at) + T("</div>");
+    h += unifiedPickHtml(g, up);
+    h += "<div class='method-heading'>" + T("Отдельные прогнозы по методам расчёта") + "</div>";
+    h += "<div class='note'>" + T("Показана последняя версия каждого метода. Предыдущие версии остаются в истории.") + "</div>";
+    h += T("<table><tr><th>Метод</th><th>Комбинация</th><th>Как рассчитано</th></tr>");
+    for (const t of latestMethodTickets(up.tickets)) {
+      h += "<tr><td><b>" + esc(t.code) + " v" + esc(String(t.version ?? "")) + "</b></td><td>" + balls(t.numbers) + "</td><td class='note'>" + esc(tx(t.explanation_vi)) + "</td></tr>";
+    }
+    h += T("</table><div id='sc' class='note'>Рассчитываем шансы для показанных методов…</div>");
   }
   const o = lv.j.goal_odds;
   if (o) {
@@ -268,10 +274,11 @@ async function pPredict(g) {
   h += T("<div class='warn'>Chọn số bằng phương pháp nào thì xác suất trúng của mỗi vé vẫn như vé ngẫu nhiên. Bảng kiểm định ở mục 7 cho thấy chưa phương pháp nào khác ngẫu nhiên.</div>");
   $("#pr").innerHTML = h;
   if (up) setTimeout(() => {
-    const n = MAXN[g], uniq = [...new Map(up.tickets.map(t => [t.numbers.join(","), t.numbers])).values()];
+    const n = MAXN[g], currentMethods = latestMethodTickets(up.tickets);
+    const uniq = [...new Map(currentMethods.map(t => [t.numbers.join(","), t.numbers])).values()];
     const s = setChance(uniq, n), r3 = 1 - Math.pow(1 - pAtLeast(n, 3), s.k), r4 = 1 - Math.pow(1 - pAtLeast(n, 4), s.k);
     const p5 = s.k * pAtLeast(n, 5), p6 = s.k / comb(n, 6);
-    $("#sc").innerHTML = T("<div style='margin-top:10px'><b>Cả bộ ") + s.k + T(" vé khác nhau</b> (ít nhất một vé đạt), so với ") + s.k + T(" vé ngẫu nhiên:</div><div class='goals'>")
+    $("#sc").innerHTML = T("<div style='margin-top:10px'><b>Bộ ") + s.k + T(" tổ hợp khác nhau từ các phương pháp đang hiển thị</b> (ít nhất một vé đạt), so với ") + s.k + T(" vé ngẫu nhiên:</div><div class='goals'>")
       + T("<div class='goal'><span class='note'>Từ 3 số</span><b>") + pct(s.p3) + T("</b><span class='note'>ngẫu nhiên: ") + pct(r3) + "</span></div>"
       + T("<div class='goal'><span class='note'>Từ 4 số</span><b>") + pct(s.p4) + T("</b><span class='note'>1 trên ") + nf(Math.round(1 / Math.max(s.p4, 1e-9))) + T(" · ngẫu nhiên: ") + pct(r4) + "</span></div>"
       + T("<div class='goal'><span class='note'>Từ 5 số</span><b>1 trên ") + nf(Math.round(1 / p5)) + T("</b><span class='note'>ngẫu nhiên: như nhau</span></div>")
