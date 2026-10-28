@@ -45,6 +45,8 @@ class MethodResult:
     draws: int = 0
     hits_sum: int = 0
     counts: dict[int, int] = field(default_factory=lambda: {m: 0 for m in range(7)})
+    special_hits: int = 0
+    jackpot2_hits: int = 0
 
     def as_dict(self, max_number: int, n_tests: int) -> dict:
         p = match_probs(max_number)
@@ -69,19 +71,37 @@ class MethodResult:
                 "random_rate": p_at_least,
                 "random_one_in": one_in(p_at_least),
             }
-        return {"code": self.code, "name_vi": self.name_vi, "description_vi": self.description_vi,
-                "draws": self.draws, "mean_hits": round(mean, 4), "random_mean_hits": round(mu, 4),
-                "z": round(z, 3), "p_value": round(pval, 4), "verdict_vi": verdict, "goals": goals,
-                "counts": {str(k): v for k, v in self.counts.items()}}
+        out = {"code": self.code, "name_vi": self.name_vi, "description_vi": self.description_vi,
+               "draws": self.draws, "mean_hits": round(mean, 4), "random_mean_hits": round(mu, 4),
+               "z": round(z, 3), "p_value": round(pval, 4), "verdict_vi": verdict, "goals": goals,
+               "counts": {str(k): v for k, v in self.counts.items()}}
+        if max_number == 55:
+            jackpot2_p = p[5] / (max_number - 6)
+            out["special_number"] = {
+                "actual": self.special_hits,
+                "actual_rate": self.special_hits / self.draws if self.draws else 0.0,
+                "random_rate": 6 / max_number,
+                "random_one_in": one_in(6 / max_number),
+            }
+            out["jackpot2"] = {
+                "actual": self.jackpot2_hits,
+                "expected": round(jackpot2_p * self.draws, 3),
+                "actual_rate": self.jackpot2_hits / self.draws if self.draws else 0.0,
+                "random_rate": jackpot2_p,
+                "random_one_in": one_in(jackpot2_p),
+            }
+        return out
 
 
-def run_backtest(game_code: str, max_number: int, draws: list[tuple[int, tuple[int, ...]]],
+def run_backtest(game_code: str, max_number: int, draws: list[tuple],
                  warmup: int = WARMUP) -> dict:
-    """draws: [(số kỳ, 6 số chính)] theo thứ tự tăng dần của số kỳ, CHỈ các kỳ dùng được."""
-    draws = sorted(draws)
+    """draws: [(số kỳ, 6 số chính[, số đặc biệt])] theo thứ tự tăng dần; chỉ các kỳ dùng được."""
+    draws = sorted(draws, key=lambda row: row[0])
     state = State(max_number)
     results = {m.code: MethodResult(m.code, m.name_vi, m.description_vi) for m in METHODS}
-    for i, (draw_no, nums) in enumerate(draws):
+    for i, row in enumerate(draws):
+        draw_no, nums = row[0], tuple(row[1])
+        bonus_number = row[2] if len(row) > 2 else None
         if i >= warmup:
             actual = set(nums)
             for code, t in all_tickets(state, f"{game_code}|{draw_no}").items():
@@ -90,6 +110,10 @@ def run_backtest(game_code: str, max_number: int, draws: list[tuple[int, tuple[i
                 r.draws += 1
                 r.hits_sum += hits
                 r.counts[hits] += 1
+                if max_number == 55 and bonus_number is not None:
+                    special_hit = bonus_number in t
+                    r.special_hits += int(special_hit)
+                    r.jackpot2_hits += int(hits == 5 and special_hit)
         state.add(tuple(nums), seed_key=f"{game_code}|{draw_no}")
     n_tests = len(CODES) - 1
     next_no = draws[-1][0] + 1 if draws else 1
@@ -98,6 +122,8 @@ def run_backtest(game_code: str, max_number: int, draws: list[tuple[int, tuple[i
         "game": game_code, "max_number": max_number, "draws_used": len(draws), "warmup": warmup,
         "first_draw": f"{draws[0][0]:05d}" if draws else None, "last_draw": f"{draws[-1][0]:05d}" if draws else None,
         "alpha": ALPHA, "bonferroni_tests": n_tests, "goal_odds": goal_odds(max_number),
+        "power_jackpot2_odds": ({"p": match_probs(55)[5] / 49, "one_in": one_in(match_probs(55)[5] / 49)}
+                                if max_number == 55 else None),
         "methods": [results[c].as_dict(max_number, n_tests) for c in CODES],
         "next_draw_no": f"{next_no:05d}",
         "learn_weights": {c: round(w, 4) for c, w in learn_weights(state).items()},
