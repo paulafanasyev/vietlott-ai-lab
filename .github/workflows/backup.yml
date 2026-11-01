@@ -35,6 +35,22 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e worker
+      - name: "Kiểm tra bí mật bắt buộc"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_WORKER: ${{ secrets.DATABASE_URL_WORKER }}
+          BACKUP_REPO: ${{ secrets.BACKUP_REPO }}
+          BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in DATABASE_URL DATABASE_URL_WORKER BACKUP_REPO BACKUP_REPO_TOKEN; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing GitHub Actions secret: ${name}"
+              missing=1
+            fi
+          done
+          exit "$missing"
       - name: "Tạo điểm kiểm tra"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_WORKER }}
