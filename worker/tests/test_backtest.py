@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from vlab.backtest import goal_odds, match_probs, run_backtest
+from vlab.backtest import MethodResult, _binomial_sf, goal_odds, match_probs, run_backtest
 from vlab.methods import BASE, CODES, EXTRA, METHOD_PARAMS, State, all_tickets, m14_posterior_params, ticket
 
 
@@ -11,6 +11,18 @@ def fake_draws(n, max_number, seed=1):
 
 
 class Odds(unittest.TestCase):
+    def test_exact_binomial_tail_for_power_special_number(self):
+        self.assertAlmostEqual(_binomial_sf(175, 1318, 6 / 55), 0.00406, delta=0.00002)
+
+    def test_power_special_number_uses_separate_multiple_test_correction(self):
+        m6 = MethodResult("M6", "M6", "test", draws=1318, special_hits=175)
+        scored = m6.as_dict(55, 16)["special_number"]
+        self.assertEqual(scored["actual"], 175)
+        self.assertAlmostEqual(scored["expected"], 143.782, places=3)
+        self.assertAlmostEqual(scored["p_value_one_sided"], 0.00406, delta=0.00002)
+        self.assertGreater(scored["p_value_bonferroni"], 0.05)
+        self.assertEqual(scored["verdict_vi"], "không khác ngẫu nhiên")
+
     def test_known_odds(self):
         mega = goal_odds(45)
         self.assertEqual(mega["6"]["one_in"], 8145060)
@@ -84,6 +96,8 @@ class Methods(unittest.TestCase):
         m0 = next(method for method in result["methods"] if method["code"] == "M0")
         self.assertEqual(m0["counts"]["5"], 1)
         self.assertEqual(m0["special_number"]["actual"], 1)
+        self.assertEqual(m0["special_number"]["expected"], round(1 * 6 / 55, 3))
+        self.assertIn("p_value_bonferroni", m0["special_number"])
         self.assertEqual(m0["jackpot2"]["actual"], 1)
         self.assertEqual(result["power_jackpot2_odds"]["one_in"], 4831612)
 
