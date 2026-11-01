@@ -37,6 +37,24 @@ def _norm_sf2(z: float) -> float:
     return math.erfc(abs(z) / math.sqrt(2))
 
 
+def _binomial_sf(k: int, n: int, probability: float) -> float:
+    """Exact P[X >= k] for X~Binomial(n,p), evaluated from the first tail term."""
+    if n <= 0 or k <= 0:
+        return 1.0
+    if k > n:
+        return 0.0
+    if not 0.0 < probability < 1.0:
+        return 1.0 if probability >= 1.0 else 0.0
+    log_pmf = (math.lgamma(n + 1) - math.lgamma(k + 1) - math.lgamma(n - k + 1)
+               + k * math.log(probability) + (n - k) * math.log1p(-probability))
+    term = math.exp(log_pmf)
+    total = term
+    for x in range(k, n):
+        term *= ((n - x) / (x + 1)) * (probability / (1.0 - probability))
+        total += term
+    return min(1.0, total)
+
+
 @dataclass
 class MethodResult:
     code: str
@@ -77,11 +95,21 @@ class MethodResult:
                "counts": {str(k): v for k, v in self.counts.items()}}
         if max_number == 55:
             jackpot2_p = p[5] / (max_number - 6)
+            special_probability = 6 / max_number
+            special_p = _binomial_sf(self.special_hits, self.draws, special_probability)
+            special_adjusted = min(1.0, special_p * n_tests)
+            special_expected = self.draws * special_probability
+            special_better = self.code != "M0" and self.special_hits > special_expected and special_adjusted < ALPHA
             out["special_number"] = {
                 "actual": self.special_hits,
+                "expected": round(special_expected, 3),
                 "actual_rate": self.special_hits / self.draws if self.draws else 0.0,
-                "random_rate": 6 / max_number,
-                "random_one_in": one_in(6 / max_number),
+                "random_rate": special_probability,
+                "random_one_in": one_in(special_probability),
+                "p_value_one_sided": round(special_p, 6),
+                "p_value_bonferroni": round(special_adjusted, 6),
+                "verdict_vi": ("TỐT HƠN ngẫu nhiên (có ý nghĩa thống kê)" if special_better else
+                               "đường cơ sở" if self.code == "M0" else "không khác ngẫu nhiên"),
             }
             out["jackpot2"] = {
                 "actual": self.jackpot2_hits,
