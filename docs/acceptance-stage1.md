@@ -6,7 +6,7 @@
 ## Итог
 
 - Production acceptance: **13/14 ДА́Т**, 1 пункт НЕ ПРОЙДЕН.
-- Последний GitHub CI: успешно 28.10.2026.
+- Последний GitHub CI: **PASS 01.11.2026**, run #41278517813; PostgreSQL worker tests и backup/restore smoke оба завершились успешно.
 - Последний GitHub Backup: сбой 31.10.2026; аналогичные сбои 29 и 30 октября.
 - Последний Vercel ingest: 01.11.2026, статус partial из-за HTTP 403 официального Vietlott.
 - Данные: Mega 6/45 — 1 582 CROSS-CHECKED; Power 6/55 — 1 418 CROSS-CHECKED; конфликтов 0; VERIFIED 0.
