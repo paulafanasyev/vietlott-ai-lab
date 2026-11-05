@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from vlab.backtest import MethodResult, _binomial_sf, goal_odds, match_probs, run_backtest
+from vlab.backtest import MethodResult, _binomial_sf, _holm_adjust, goal_odds, match_probs, run_backtest
 from vlab.methods import BASE, CODES, EXTRA, METHOD_PARAMS, State, all_tickets, m14_posterior_params, ticket
 
 
@@ -11,6 +11,13 @@ def fake_draws(n, max_number, seed=1):
 
 
 class Odds(unittest.TestCase):
+    def test_holm_step_down_adjustment_is_monotone_and_controls_family(self):
+        adjusted = _holm_adjust({"A": 0.01, "B": 0.04, "C": 0.03})
+        self.assertAlmostEqual(adjusted["A"], 0.03, places=12)
+        self.assertAlmostEqual(adjusted["C"], 0.06, places=12)
+        self.assertAlmostEqual(adjusted["B"], 0.06, places=12)
+        self.assertTrue(all(0.0 <= value <= 1.0 for value in adjusted.values()))
+
     def test_exact_binomial_tail_for_power_special_number(self):
         self.assertAlmostEqual(_binomial_sf(175, 1318, 6 / 55), 0.00406, delta=0.00002)
 
@@ -142,6 +149,18 @@ class Backtest(unittest.TestCase):
         for _, d in draws2[:120]:
             st2.add(d)
         self.assertEqual(before, all_tickets(st2, "g|121"))
+
+    def test_backtest_reports_effect_interval_and_holm_adjustment(self):
+        res = run_backtest("mega645", 45, fake_draws(240, 45, seed=29))
+        for method in res["methods"]:
+            self.assertEqual(method["draws"], 140)
+            self.assertIn("effect_vs_random", method)
+            interval = method["effect_ci95"]
+            self.assertLessEqual(interval["lower"], method["effect_vs_random"])
+            self.assertGreaterEqual(interval["upper"], method["effect_vs_random"])
+            self.assertTrue(0.0 <= method["p_value_holm"] <= 1.0)
+            self.assertTrue(0.0 <= method["p_value_bonferroni"] <= 1.0)
+            self.assertIn("verdict_holm_vi", method)
 
     def test_random_data_not_significant(self):
         res = run_backtest("mega645", 45, fake_draws(1500, 45, seed=7))
