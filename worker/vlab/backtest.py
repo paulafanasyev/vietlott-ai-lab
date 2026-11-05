@@ -1,7 +1,8 @@
 """Kiểm định walk-forward: với mỗi kỳ t, mọi phương pháp chỉ dùng các kỳ < t để chọn vé, rồi so với kỳ t.
 
 So sánh với xác suất lý thuyết của vé ngẫu nhiên (phân phối siêu bội) và với M0 thực nghiệm.
-Kiểm định z cho số trúng trung bình, hiệu chỉnh Bonferroni cho các phương pháp không ngẫu nhiên.
+Kiểm định z hai phía cho số trúng trung bình; báo cáo khoảng tin cậy 95% và hiệu chỉnh Holm step-down.
+Giữ Bonferroni để đối chiếu tương thích với báo cáo cũ.
 """
 
 from __future__ import annotations
@@ -48,11 +49,6 @@ def _holm_adjust(p_values: dict[str, float]) -> dict[str, float]:
         running_max = max(running_max, candidate)
         adjusted[code] = running_max
     return adjusted
-
-
-def special_hits_above(actual: int, expected: float) -> bool:
-    """Strictly above the random expectation; significance is evaluated separately."""
-    return actual > expected
 
 
 def _binomial_sf(k: int, n: int, probability: float) -> float:
@@ -131,7 +127,7 @@ class MethodResult:
             special_p = _binomial_sf(self.special_hits, self.draws, special_probability)
             special_adjusted = min(1.0, special_p * n_tests)
             special_expected = self.draws * special_probability
-            special_holm_better = (self.code != "M0" and special_hits_above(self.special_hits, special_expected)
+            special_holm_better = (self.code != "M0" and self.special_hits > special_expected
                                    and special_holm < ALPHA)
             special_holm_worse = (self.code != "M0" and self.special_hits < special_expected
                                   and special_holm < ALPHA)
@@ -207,7 +203,11 @@ def run_backtest(game_code: str, max_number: int, draws: list[tuple],
     return {
         "game": game_code, "max_number": max_number, "draws_used": len(draws), "warmup": warmup,
         "first_draw": f"{draws[0][0]:05d}" if draws else None, "last_draw": f"{draws[-1][0]:05d}" if draws else None,
-        "alpha": ALPHA, "bonferroni_tests": n_tests, "goal_odds": goal_odds(max_number),
+        "alpha": ALPHA, "bonferroni_tests": n_tests,
+        "multiple_testing": {"method": "Holm step-down", "family_size": n_tests, "alpha": ALPHA,
+                             "families": ["main-number mean", "Power special-number rate"]},
+        "confidence_interval": "95% normal interval for mean-hit effect versus theoretical random expectation",
+        "goal_odds": goal_odds(max_number),
         "power_jackpot2_odds": ({"p": match_probs(55)[5] / 49, "one_in": one_in(match_probs(55)[5] / 49)}
                                 if max_number == 55 else None),
         "methods": [results[c].as_dict(max_number, n_tests,
