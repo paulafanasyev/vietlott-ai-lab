@@ -37,6 +37,24 @@ def _norm_sf2(z: float) -> float:
     return math.erfc(abs(z) / math.sqrt(2))
 
 
+def _holm_adjust(p_values: dict[str, float]) -> dict[str, float]:
+    """Holm step-down adjustment; controls family-wise error under arbitrary dependence."""
+    ranked = sorted(p_values.items(), key=lambda item: item[1])
+    adjusted: dict[str, float] = {}
+    running_max = 0.0
+    count = len(ranked)
+    for index, (code, p_value) in enumerate(ranked):
+        candidate = min(1.0, (count - index) * p_value)
+        running_max = max(running_max, candidate)
+        adjusted[code] = running_max
+    return adjusted
+
+
+def special_hits_above(actual: int, expected: float) -> bool:
+    """Strictly above the random expectation; significance is evaluated separately."""
+    return actual > expected
+
+
 def _binomial_sf(k: int, n: int, probability: float) -> float:
     """Exact P[X >= k] for X~Binomial(n,p), evaluated from the first tail term."""
     if n <= 0 or k <= 0:
@@ -66,14 +84,20 @@ class MethodResult:
     special_hits: int = 0
     jackpot2_hits: int = 0
 
-    def as_dict(self, max_number: int, n_tests: int) -> dict:
+    def as_dict(self, max_number: int, n_tests: int,
+                p_holm: float = 1.0, special_holm: float = 1.0) -> dict:
         p = match_probs(max_number)
         mu = 6 * 6 / max_number
         var = 6 * 6 * (max_number - 6) * (max_number - 6) / (max_number ** 2 * (max_number - 1))
         mean = self.hits_sum / self.draws if self.draws else 0.0
         z = (mean - mu) / math.sqrt(var / self.draws) if self.draws else 0.0
         pval = _norm_sf2(z) if self.draws else 1.0
+        effect = mean - mu
+        standard_error = math.sqrt(var / self.draws) if self.draws else 0.0
+        ci_margin = 1.959963984540054 * standard_error
         better = self.code != "M0" and pval < ALPHA / n_tests and z > 0
+        holm_better = self.code != "M0" and p_holm < ALPHA and z > 0
+        holm_worse = self.code != "M0" and p_holm < ALPHA and z < 0
         worse = self.code != "M0" and pval < ALPHA / n_tests and z < 0
         verdict = ("TỐT HƠN ngẫu nhiên (có ý nghĩa thống kê)" if better else
                    "KÉM HƠN ngẫu nhiên (có ý nghĩa thống kê)" if worse else
@@ -91,14 +115,26 @@ class MethodResult:
             }
         out = {"code": self.code, "name_vi": self.name_vi, "description_vi": self.description_vi,
                "draws": self.draws, "mean_hits": round(mean, 4), "random_mean_hits": round(mu, 4),
-               "z": round(z, 3), "p_value": round(pval, 4), "verdict_vi": verdict, "goals": goals,
-               "counts": {str(k): v for k, v in self.counts.items()}}
+               "effect_vs_random": round(effect, 4),
+               "effect_ci95": {"lower": round(effect - ci_margin, 4),
+                               "upper": round(effect + ci_margin, 4)},
+               "z": round(z, 3), "p_value": round(pval, 4),
+               "p_value_bonferroni": round(min(1.0, pval * n_tests), 6),
+               "p_value_holm": round(p_holm, 6), "verdict_vi": verdict,
+               "verdict_holm_vi": ("TỐT HƠN ngẫu nhiên (Holm-adjusted)" if holm_better else
+                                   "KÉM HƠN ngẫu nhiên (Holm-adjusted)" if holm_worse else
+                                   "đường cơ sở" if self.code == "M0" else "không khác ngẫu nhiên"),
+               "goals": goals, "counts": {str(k): v for k, v in self.counts.items()}}
         if max_number == 55:
             jackpot2_p = p[5] / (max_number - 6)
             special_probability = 6 / max_number
             special_p = _binomial_sf(self.special_hits, self.draws, special_probability)
             special_adjusted = min(1.0, special_p * n_tests)
             special_expected = self.draws * special_probability
+            special_holm_better = (self.code != "M0" and special_hits_above(self.special_hits, special_expected)
+                                   and special_holm < ALPHA)
+            special_holm_worse = (self.code != "M0" and self.special_hits < special_expected
+                                  and special_holm < ALPHA)
             special_better = self.code != "M0" and self.special_hits > special_expected and special_adjusted < ALPHA
             out["special_number"] = {
                 "actual": self.special_hits,
@@ -108,8 +144,12 @@ class MethodResult:
                 "random_one_in": one_in(special_probability),
                 "p_value_one_sided": round(special_p, 6),
                 "p_value_bonferroni": round(special_adjusted, 6),
+                "p_value_holm": round(special_holm, 6),
                 "verdict_vi": ("TỐT HƠN ngẫu nhiên (có ý nghĩa thống kê)" if special_better else
                                "đường cơ sở" if self.code == "M0" else "không khác ngẫu nhiên"),
+                "verdict_holm_vi": ("TỐT HƠN ngẫu nhiên (Holm-adjusted)" if special_holm_better else
+                                    "KÉM HƠN ngẫu nhiên (Holm-adjusted)" if special_holm_worse else
+                                    "đường cơ sở" if self.code == "M0" else "không khác ngẫu nhiên"),
             }
             out["jackpot2"] = {
                 "actual": self.jackpot2_hits,
@@ -144,6 +184,24 @@ def run_backtest(game_code: str, max_number: int, draws: list[tuple],
                     r.jackpot2_hits += int(hits == 5 and special_hit)
         state.add(tuple(nums), seed_key=f"{game_code}|{draw_no}")
     n_tests = len(CODES) - 1
+    # Adjust each family separately: main-number mean and Power special-number rate.
+    # M0 is a control, not one of the candidate methods in either family.
+    main_raw_p: dict[str, float] = {}
+    special_raw_p: dict[str, float] = {}
+    for code in CODES:
+        if code == "M0":
+            continue
+        r = results[code]
+        mean = r.hits_sum / r.draws if r.draws else 0.0
+        mu = 36 / max_number
+        variance = (36 * (max_number - 6) * (max_number - 6)
+                    / (max_number * max_number * (max_number - 1)))
+        z = ((mean - mu) / math.sqrt(variance / r.draws)) if r.draws else 0.0
+        main_raw_p[code] = _norm_sf2(z) if r.draws else 1.0
+        if max_number == 55:
+            special_raw_p[code] = _binomial_sf(r.special_hits, r.draws, 6 / max_number)
+    holm_main = _holm_adjust(main_raw_p)
+    holm_special = _holm_adjust(special_raw_p)
     next_no = draws[-1][0] + 1 if draws else 1
     tickets = all_tickets(state, f"{game_code}|{next_no}") if draws else {}
     return {
@@ -152,7 +210,9 @@ def run_backtest(game_code: str, max_number: int, draws: list[tuple],
         "alpha": ALPHA, "bonferroni_tests": n_tests, "goal_odds": goal_odds(max_number),
         "power_jackpot2_odds": ({"p": match_probs(55)[5] / 49, "one_in": one_in(match_probs(55)[5] / 49)}
                                 if max_number == 55 else None),
-        "methods": [results[c].as_dict(max_number, n_tests) for c in CODES],
+        "methods": [results[c].as_dict(max_number, n_tests,
+                                       holm_main.get(c, 1.0), holm_special.get(c, 1.0))
+                    for c in CODES],
         "next_draw_no": f"{next_no:05d}",
         "learn_weights": {c: round(w, 4) for c, w in learn_weights(state).items()},
         "next_tickets": [{"code": c, "name_vi": next(m.name_vi for m in METHODS if m.code == c),
